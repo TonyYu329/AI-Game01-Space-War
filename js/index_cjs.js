@@ -354,6 +354,7 @@ function startGameLoop() {
                     }
                     meteors.splice(mIndex, 1);
                     bullets.splice(bIndex, 1);
+                    gameState.score++;
                     break;
                 }
             }
@@ -408,6 +409,7 @@ function startGameLoop() {
         const deltaTime = currentTime - lastTime;
         lastTime = currentTime;
         update();
+        updateHUD();
         render();
         animationFrameId = requestAnimationFrame(gameLoop);
     }
@@ -424,27 +426,97 @@ function startGameLoop() {
  */
 function startGame() {
     console.log('[GAME] Starting game...');
-    
+
     // Reset all entities
     resetEntities();
-    
+
     // Set state to running
     gameState.current = 'running';
     gameState.score = 0;
     gameState.startTime = Date.now();
-    
+
+    // Initialize HUD container and display elements
+    const hudContainerId = 'hudContainer';
+    let hudContainer = document.getElementById(hudContainerId);
+    if (!hudContainer) {
+        console.log(`[HUD] Creating ${hudContainerId} container.`);
+        hudContainer = document.createElement('div');
+        hudContainer.id = hudContainerId;
+        // Basic styling for the HUD container itself (needs CSS support in game1.html or merged.css)
+        hudContainer.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(0, 30, 60, 0.85);
+            border: 2px solid #4ff;
+            border-radius: 10px;
+            padding: 15px 20px;
+            color: #fff;
+            font-family: 'Courier New', monospace;
+            font-size: 16px;
+            z-index: 9999;
+            box-shadow: 0 0 20px rgba(79, 255, 255, 0.5);
+            pointer-events: none;
+        `;
+        document.body.appendChild(hudContainer);
+    }
+
+    // Create/Update Score Display
+    let scoreRow = hudContainer.querySelector('.hud-row');
+    if (!scoreRow) {
+        scoreRow = document.createElement('div');
+        scoreRow.className = 'hud-row';
+        scoreRow.innerHTML = '<span class="hud-label">SCORE:</span><span class="hud-value" id="liveScore">0</span>';
+        hudContainer.appendChild(scoreRow);
+    }
+
+    // Create/Update Time Display (Time is handled by a separate update function)
+    let timeRow = hudContainer.querySelector('.hud-row:last-child');
+    if (!timeRow) {
+        timeRow = document.createElement('div');
+        timeRow.className = 'hud-row';
+        timeRow.innerHTML = '<span class="hud-label">TIME:</span><span class="hud-value" id="liveTime">00:00</span>';
+        hudContainer.appendChild(timeRow);
+    }
+
     // Hide start screen
     const startScreen = document.getElementById('startScreen');
     if (startScreen) startScreen.style.display = 'none';
-    
+
     // Hide game over screen
     const gameOverScreen = document.getElementById('gameOverScreen');
     if (gameOverScreen) gameOverScreen.style.display = 'none';
-    
+
     // Hide cursor during gameplay
     canvas.style.cursor = 'none';
-    
+
     console.log('[GAME] Game started!');
+}
+
+/**
+ * Update HUD display (called every frame in update function)
+ */
+function updateHUD() {
+    if (gameState.current !== 'running') return;
+
+    // Update score display
+    const liveScore = document.getElementById('liveScore');
+    if (liveScore) {
+        liveScore.textContent = gameState.score;
+    }
+
+    // Update time display
+    const liveTime = document.getElementById('liveTime');
+    if (liveTime) {
+        const elapsed = Date.now() - gameState.startTime;
+        const minutes = Math.floor(elapsed / 60000);
+        const seconds = Math.floor((elapsed % 60000) / 1000);
+        const milliseconds = Math.floor((elapsed % 1000) / 10);
+        liveTime.textContent = 
+            (minutes < 10 ? '0' : '') + minutes + ':' +
+            (seconds < 10 ? '0' : '') + seconds + '.' +
+            (milliseconds < 10 ? '0' : '') + milliseconds;
+    }
 }
 
 /**
@@ -467,6 +539,17 @@ function gameOver() {
     const finalScore = document.getElementById('finalScore');
     if (finalScore) {
         finalScore.textContent = gameState.score;
+    }
+
+    // Calculate and display total game time
+    const totalGameTime = Date.now() - gameState.startTime;
+    const minutes = Math.floor(totalGameTime / 60000);
+    const seconds = Math.floor((totalGameTime % 60000) / 1000);
+    
+    // Update the game over screen to show total time
+    const totalTimeElement = document.getElementById('totalGameTime');
+    if (totalTimeElement) {
+        totalTimeElement.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
     }
 }
 
