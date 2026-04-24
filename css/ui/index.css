@@ -1,0 +1,14 @@
+/**
+ * @description Main CSS Entry Point for Game UI
+ * 
+ * Import order:
+ * 1. Base styles (body, canvas)
+ * 2. Overlay components (screens, buttons, HUD)
+ */
+
+/* ============================================================
+   === CORE IMPORTS ===========================================
+   ============================================================ */
+
+@import './base.css';
+@import './overlays.css';

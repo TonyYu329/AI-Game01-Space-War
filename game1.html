@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space War - 太空战机</title>
+    
+    <!-- ============================================================
+         === CSS IMPORTS =======================================
+         ============================================================ -->
+    <link rel="stylesheet" href="./css/ui/merged.css">
+    
+    <!-- ============================================================
+         === JAVASCRIPT IMPORTS ===============================
+         ============================================================ -->
+    <script src="./js/index_cjs.js"></script>
+</head>
+<body>
+
+    <!-- ============================================================
+         === GAME CANVAS =======================================
+         ============================================================ -->
+    <canvas id="gameCanvas"></canvas>
+    
+    <!-- ============================================================
+         === UI CONTAINER ======================================
+         ============================================================ -->
+    <div class="game-ui">
+        
+        <!-- HUD (Heads-Up Display) -->
+        <div class="game-hud" id="hudContainer"></div>
+        
+        <!-- Start Screen Overlay -->
+        <div class="start-screen" id="startScreen">
+            <h1 class="overlay-title">Space War</h1>
+            <p class="overlay-subtitle">
+                鼠标移动控制战机<br/>
+                左键点击射击<br/>
+                躲避陨石，生存更久！
+            </p>
+            <button class="game-button" id="startButton">开始游戏</button>
+        </div>
+        
+        <!-- Game Over Overlay -->
+        <div class="game-over-screen" id="gameOverScreen">
+            <h1 class="overlay-title" style="color: #ff4444;">Game Over</h1>
+            <p class="overlay-subtitle">最终得分：<span id="finalScore"></span></p>
+            <button class="game-button" id="restartButton">重新开始</button>
+        </div>
+        
+    </div>
+
+    <!-- ============================================================
+         === BUTTON EVENT BINDING =============================
+         ============================================================ -->
+    <script>
+        // Bind button events after DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('[HTML] DOM ready, binding buttons...');
+            
+            // Start button
+            var startBtn = document.getElementById('startButton');
+            if (startBtn) {
+                startBtn.addEventListener('click', function() {
+                    console.log('[HTML] Start button clicked');
+                    if (window.startGame) {
+                        window.startGame();
+                    } else {
+                        console.error('[HTML] startGame not found!');
+                    }
+                });
+            }
+            
+            // Restart button
+            var restartBtn = document.getElementById('restartButton');
+            if (restartBtn) {
+                restartBtn.addEventListener('click', function() {
+                    console.log('[HTML] Restart button clicked');
+                    if (window.resetGame) {
+                        window.resetGame();
+                    } else {
+                        console.error('[HTML] resetGame not found!');
+                    }
+                });
+            }
+        });
+    </script>
+</body>
+</html>

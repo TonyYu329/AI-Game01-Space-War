@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Space Shooter</title>
+    
+    <!-- External CSS -->
+    <link rel="stylesheet" href="../css/game.css">
+    
+    <style>
+        /* Inline styles for quick setup */
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: #000;
+            font-family: 'Courier New', monospace;
+        }
+        
+        #gameCanvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+    
+    <!-- Game canvas (created by JS) -->
+    <canvas id="gameCanvas"></canvas>
+    
+    <!-- UI Overlay Container -->
+    <div class="game-ui">
+        
+        <!-- HUD - always visible during gameplay -->
+        <div class="game-hud" style="display: none;">
+            <div class="hud-row">
+                <span>Health:</span>
+                <span id="healthDisplay">100</span>
+            </div>
+            <div class="hud-row">
+                <span>Meteors:</span>
+                <span id="meteorCount">0</span>
+            </div>
+        </div>
+        
+        <!-- Start Screen -->
+        <div class="start-screen" style="display: none;">
+            <h1 class="overlay-title">SPACE SHOOTER</h1>
+            <p class="overlay-subtitle">
+                Use <strong>W</strong> or <strong>Arrow Up</strong> to move.<br>
+                Press <strong>R</strong> for machine gun mode.
+            </p>
+            <button id="startButton" class="game-button">START GAME</button>
+        </div>
+        
+        <!-- Game Over Screen -->
+        <div class="game-over-screen" style="display: none;">
+            <h1 class="overlay-title" style="color: #f55;">GAME OVER</h1>
+            <p class="overlay-subtitle">Press R to restart</p>
+        </div>
+        
+        <!-- Title Screen -->
+        <div class="title-screen" id="titleScreen" style="display: flex;">
+            <h1 class="overlay-title">SPACE SHOOTER</h1>
+            <p class="overlay-subtitle">
+                Use <strong>W</strong> or <strong>Arrow Up</strong> to move.<br>
+                Press <strong>R</strong> for machine gun mode.
+            </p>
+            <button id="startButton" class="game-button">START GAME</button>
+        </div>
+        
+    </div>
+    
+    <!-- Game Modules -->
+    <script type="module">
+        import { initGame, startGame } from './modules/core/game.js';
+        import { isRunning } from './modules/core/state.js';
+        import { PLANE_DEFAULTS } from './modules/entities/plane.js';
+        
+        // DOM elements
+        const titleScreen = document.getElementById('titleScreen');
+        const startButton = document.getElementById('startButton');
+        const gameOverScreen = document.querySelector('.game-over-screen');
+        const hud = document.querySelector('.game-hud');
+        const healthDisplay = document.getElementById('healthDisplay');
+        const meteorCount = document.getElementById('meteorCount');
+        
+        // Initialize game systems
+        initGame();
+        
+        // Start button handler
+        startButton.addEventListener('click', () => {
+            titleScreen.style.display = 'none';
+            hud.style.display = 'block';
+            gameOverScreen.style.display = 'none';
+            
+            if (!isRunning) {
+                startGame();
+            }
+        });
+        
+        // Game over handler
+        window.onGameOver = () => {
+            isRunning = false;
+            gameOverScreen.style.display = 'flex';
+            hud.style.display = 'none';
+        };
+    </script>
+    
+</body>
+</html>

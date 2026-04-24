@@ -1,0 +1,15 @@
+/**
+ * @description Base UI Styles (from style.css)
+ */
+
+body {
+    margin: 0;
+    overflow: hidden;
+    background: #000;
+    touch-action: none; /* Disable default mobile behavior */
+}
+
+canvas {
+    display: block;
+    cursor: crosshair;
+}
