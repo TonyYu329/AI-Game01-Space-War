@@ -4,8 +4,15 @@
  */
 
 // ============================================================
-// === ENTITY DEFAULTS =======================================
+// === ENTITY DEFAULTS & GLOBAL STATE =========================
 // ============================================================
+
+export const gameState = {
+    status: 'loading', // 'running', 'gameover'
+    score: 0,
+    shakeIntensity: 0,
+    isPaused: false
+};
 
 export const planeDefaults = {
     width: 50,
