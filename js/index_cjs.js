@@ -6,8 +6,7 @@
     'use strict';
 
     const CONFIG = {
-        CANVAS_WIDTH: 800,
-        CANVAS_HEIGHT: 600,
+        DESIGN_HEIGHT: 600,
         TARGET_DT: 1000 / 60,
         DEATH_EXPLOSION_MS: 2000,
         MAX_METEORS: 18,
@@ -17,27 +16,29 @@
         BG_COLOR: '#02040d'
     };
 
+    let canvas = null;
+    let ctx = null;
+    let animationFrameId = null;
+    let gameScale = 1;
+    let gameWidth = 800;
+    let meteorSpawnTimer = 0;
+    let fireCooldown = 0;
+
     const state = {
         current: 'idle',
         score: 0,
         startTime: 0,
         shake: 0,
         flash: 0,
-        lastMouseX: CONFIG.CANVAS_WIDTH / 2,
-        lastMouseY: CONFIG.CANVAS_HEIGHT * 0.75,
+        lastMouseX: gameWidth / 2,
+        lastMouseY: CONFIG.DESIGN_HEIGHT * 0.75,
         time: 0,
         deathStartedAt: 0
     };
 
-    let canvas = null;
-    let ctx = null;
-    let animationFrameId = null;
-    let meteorSpawnTimer = 0;
-    let fireCooldown = 0;
-
     const plane = {
-        x: CONFIG.CANVAS_WIDTH / 2 - 28,
-        y: CONFIG.CANVAS_HEIGHT * 0.72,
+        x: gameWidth / 2 - 28,
+        y: CONFIG.DESIGN_HEIGHT * 0.72,
         width: 56,
         height: 44,
         vx: 0,
@@ -70,9 +71,16 @@
             document.body.appendChild(canvas);
         }
         ctx = canvas.getContext('2d', { alpha: false });
-        canvas.width = CONFIG.CANVAS_WIDTH;
-        canvas.height = CONFIG.CANVAS_HEIGHT;
         canvas.style.cssText += `;background:${CONFIG.BG_COLOR};touch-action:none;`;
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+    }
+
+    function resizeCanvas() {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        gameScale = canvas.height / CONFIG.DESIGN_HEIGHT;
+        gameWidth = canvas.width / gameScale;
     }
 
     function initBackgroundStars() {
@@ -80,8 +88,8 @@
         for (let i = 0; i < CONFIG.STAR_COUNT; i++) {
             const depth = Math.random();
             backgroundStars.push({
-                x: Math.random() * CONFIG.CANVAS_WIDTH,
-                y: Math.random() * CONFIG.CANVAS_HEIGHT,
+                x: Math.random() * gameWidth,
+                y: Math.random() * CONFIG.DESIGN_HEIGHT,
                 size: 0.4 + depth * 1.9,
                 speed: 0.08 + depth * 0.75,
                 alpha: 0.25 + depth * 0.75,
@@ -117,7 +125,7 @@
 
     function connectPanned(gain, x) {
         const ctxA = AUDIO.ctx;
-        const pan = Math.max(-0.9, Math.min(0.9, (x / CONFIG.CANVAS_WIDTH) * 2 - 1));
+        const pan = Math.max(-0.9, Math.min(0.9, (x / gameWidth) * 2 - 1));
         if (ctxA.createStereoPanner) {
             const panner = ctxA.createStereoPanner();
             panner.pan.value = pan;
@@ -218,8 +226,8 @@
     function screenToCanvas(e) {
         const rect = canvas.getBoundingClientRect();
         return {
-            x: (e.clientX - rect.left) * (CONFIG.CANVAS_WIDTH / rect.width),
-            y: (e.clientY - rect.top) * (CONFIG.CANVAS_HEIGHT / rect.height)
+            x: (e.clientX - rect.left) / gameScale,
+            y: (e.clientY - rect.top) / gameScale
         };
     }
 
@@ -228,8 +236,8 @@
             if (state.current !== 'running') return;
             const oldX = plane.x;
             const oldY = plane.y;
-            plane.x = Math.max(0, Math.min(CONFIG.CANVAS_WIDTH - plane.width, x - plane.width / 2));
-            plane.y = Math.max(0, Math.min(CONFIG.CANVAS_HEIGHT - plane.height, y - plane.height / 2));
+            plane.x = Math.max(0, Math.min(gameWidth - plane.width, x - plane.width / 2));
+            plane.y = Math.max(0, Math.min(CONFIG.DESIGN_HEIGHT - plane.height, y - plane.height / 2));
             plane.vx = plane.x - oldX;
             plane.vy = plane.y - oldY;
             plane.tilt += ((plane.vx * 0.035) - plane.tilt) * 0.2;
@@ -307,7 +315,7 @@
             ['#b87a35', '#60401f', '#1c1208']
         ][Math.floor(Math.random() * 4)];
         meteors.push({
-            x: radius + Math.random() * (CONFIG.CANVAS_WIDTH - radius * 2),
+            x: radius + Math.random() * (gameWidth - radius * 2),
             y: -radius * 2,
             width: radius * 2,
             height: radius * 2,
@@ -462,7 +470,7 @@
             m.rotation += m.rotationSpeed;
             m.rotationSpeed *= 0.998;
         });
-        meteors = meteors.filter((m) => m.y - m.radius < CONFIG.CANVAS_HEIGHT + 80);
+        meteors = meteors.filter((m) => m.y - m.radius < CONFIG.DESIGN_HEIGHT + 80);
 
         for (let bIndex = bullets.length - 1; bIndex >= 0; bIndex--) {
             const b = bullets[bIndex];
@@ -496,19 +504,19 @@
     }
 
     function renderBackground() {
-        const g = ctx.createRadialGradient(CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT * 0.45, 20, CONFIG.CANVAS_WIDTH / 2, CONFIG.CANVAS_HEIGHT / 2, 620);
+        const g = ctx.createRadialGradient(gameWidth / 2, CONFIG.DESIGN_HEIGHT * 0.45, 20, gameWidth / 2, CONFIG.DESIGN_HEIGHT / 2, 620);
         g.addColorStop(0, '#081533');
         g.addColorStop(0.52, '#030814');
         g.addColorStop(1, '#000000');
         ctx.fillStyle = g;
-        ctx.fillRect(0, 0, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
+        ctx.fillRect(0, 0, gameWidth, CONFIG.DESIGN_HEIGHT);
 
         backgroundStars.forEach((star) => {
             star.y += star.speed;
             star.x += Math.sin((state.time + star.y) * 0.002) * star.speed * 0.08;
-            if (star.y > CONFIG.CANVAS_HEIGHT + 4) {
+            if (star.y > CONFIG.DESIGN_HEIGHT + 4) {
                 star.y = -4;
-                star.x = Math.random() * CONFIG.CANVAS_WIDTH;
+                star.x = Math.random() * gameWidth;
             }
             const alpha = star.alpha * (0.65 + Math.sin(state.time * 0.035 + star.twinkle) * 0.28);
             ctx.fillStyle = star.hue === '#ffffff' ? `rgba(255,255,255,${alpha})` : star.hue;
@@ -700,6 +708,7 @@
 
     function render() {
         ctx.save();
+        ctx.scale(gameScale, gameScale);
         if (state.shake > 0.05) {
             ctx.translate((Math.random() - 0.5) * state.shake, (Math.random() - 0.5) * state.shake);
         }
@@ -711,11 +720,11 @@
             if (state.current === 'running' || state.current === 'game_over') drawPlane();
             drawParticles();
         }
-        ctx.restore();
         if (state.flash > 0.01) {
             ctx.fillStyle = `rgba(255,245,220,${state.flash})`;
-            ctx.fillRect(0, 0, CONFIG.CANVAS_WIDTH, CONFIG.CANVAS_HEIGHT);
+            ctx.fillRect(0, 0, gameWidth, CONFIG.DESIGN_HEIGHT);
         }
+        ctx.restore();
     }
 
     function updateHUD() {
@@ -775,8 +784,8 @@
         state.shake = 0;
         state.flash = 0;
         state.deathStartedAt = 0;
-        plane.x = CONFIG.CANVAS_WIDTH / 2 - plane.width / 2;
-        plane.y = CONFIG.CANVAS_HEIGHT * 0.73;
+        plane.x = gameWidth / 2 - plane.width / 2;
+        plane.y = CONFIG.DESIGN_HEIGHT * 0.73;
         plane.vx = 0;
         plane.vy = 0;
         plane.tilt = 0;

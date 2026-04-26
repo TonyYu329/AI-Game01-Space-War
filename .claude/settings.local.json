@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node --check \"d:/Study/AICode/AICodeTest1/js/index_cjs.js\")",
+      "Bash(git -C \"d:/Study/AICode/AICodeTest1\" log --oneline -10)",
+      "Bash(git -C \"d:/Study/AICode/AICodeTest1\" status)",
+      "Bash(git -C \"d:/Study/AICode/AICodeTest1\" tag -l)",
+      "Bash(git -C \"d:/Study/AICode/AICodeTest1\" log --format=\"%h %ai %s\" -10)",
+      "Bash(git -C \"d:/Study/AICode/AICodeTest1\" diff --staged)",
+      "Bash(git -C \"d:/Study/AICode/AICodeTest1\" diff)",
+      "Bash(git -C \"d:/Study/AICode/AICodeTest1\" log --all --graph --oneline)",
+      "Bash(git add *)"
+    ]
+  }
+}
