@@ -253,8 +253,11 @@
         canvas.addEventListener('mousedown', (e) => {
             if (state.current !== 'running') return;
             e.preventDefault();
-            const isCannon = e.button === 2;
-            shoot(isCannon ? 'cannon' : 'machinegun');
+            if (e.button === 2) {
+                shoot('cannon');
+            } else if (e.button === 0) {
+                shoot('machinegun', { single: true });
+            }
         });
 
         document.addEventListener('keydown', (e) => {
@@ -329,7 +332,7 @@
         });
     }
 
-    function shoot(type) {
+    function shoot(type, opts = {}) {
         if (bullets.length >= CONFIG.MAX_BULLETS) return;
         const isCannon = type === 'cannon';
         const now = performance.now();
@@ -337,7 +340,7 @@
         fireCooldown = now + (isCannon ? 260 : 80);
         const x = plane.x + plane.width / 2;
         const y = plane.y + 4;
-        const spread = isCannon ? [0] : [-8, 8];
+        const spread = isCannon ? [0] : opts.single ? [0] : [-8, 8];
         spread.forEach((offset) => {
             bullets.push({
                 x: x + offset,
