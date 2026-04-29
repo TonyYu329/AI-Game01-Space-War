@@ -1,12 +1,12 @@
 /**
- * @description Merged Game UI Stylesheet
- * @date 2026-04-24
- * 
- * Combines all CSS files into one optimized stylesheet.
+ * @description 太空战机游戏界面样式表
+ * @date 2026-04-29
+ *
+ * 移动端优先设计，包含开始界面、结束界面、HUD 和移动端控制按钮的全部样式
  */
 
 /* ============================================================
-   === BASE STYLES (body, canvas) =============================
+   === 基础样式 ===============================================
    ============================================================ */
 
 body {
@@ -22,7 +22,7 @@ canvas {
 }
 
 /* ============================================================
-   === GAME CANVAS ===========================================
+   === 游戏画布 ===============================================
    ============================================================ */
 
 #gameCanvas {
@@ -35,7 +35,7 @@ canvas {
 }
 
 /* ============================================================
-   === UI CONTAINER ==========================================
+   === UI 容器（覆盖层容器，不响应指针事件） ================
    ============================================================ */
 
 .game-ui {
@@ -49,7 +49,7 @@ canvas {
 }
 
 /* ============================================================
-   === HUD (Heads-Up Display) ================================
+   === HUD 抬头显示 ===========================================
    ============================================================ */
 
 .game-hud {
@@ -66,7 +66,7 @@ canvas {
 }
 
 /* ============================================================
-   === START SCREEN ==========================================
+   === 开始界面（居中竖向排列，移动端适配） ==================
    ============================================================ */
 
 .start-screen {
@@ -75,7 +75,27 @@ canvas {
     left: 0;
     right: 0;
     bottom: 0;
-    background-color: rgba(0, 0, 0, 0.8);
+    background: radial-gradient(ellipse at 50% 40%, #0a0a3a 0%, #000008 70%);
+    display: flex;
+    flex-direction: column;       /* 竖向排列 */
+    align-items: center;          /* 水平居中 */
+    justify-content: center;      /* 垂直居中 */
+    gap: clamp(16px, 4vh, 30px);  /* 元素间距自适应 */
+    pointer-events: auto;
+    padding: 20px;
+}
+
+/* ============================================================
+   === 无标题界面 =============================================
+   ============================================================ */
+
+.title-screen {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.9);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -83,7 +103,7 @@ canvas {
 }
 
 /* ============================================================
-   === GAME OVER SCREEN ======================================
+   === 游戏结束界面 ===========================================
    ============================================================ */
 
 .game-over-screen {
@@ -101,55 +121,47 @@ canvas {
 }
 
 /* ============================================================
-   === TITLE SCREEN ==========================================
-   ============================================================ */
-
-.title-screen {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background-color: rgba(0, 0, 0, 0.9);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    pointer-events: auto;
-}
-
-/* ============================================================
-   === COMMON OVERLAY STYLES ================================
+   === 通用覆盖层文字样式 ====================================
    ============================================================ */
 
 .overlay-title {
     color: #4ff;
-    font-size: 72px;
+    font-size: clamp(36px, 9vw, 72px);  /* 响应式字体 */
     text-shadow: 0 0 20px rgba(79, 255, 255, 0.8);
-    margin-bottom: 30px;
+    margin-bottom: 0;  /* 由 flex gap 控制间距 */
+    text-align: center;
+    letter-spacing: 4px;
 }
 
 .overlay-subtitle {
     color: #aaa;
-    font-size: 18px;
+    font-size: clamp(14px, 2.8vw, 18px);
     text-align: center;
-    max-width: 400px;
-    line-height: 1.6;
+    max-width: min(400px, 80vw);
+    line-height: 1.8;
+    letter-spacing: 1px;
 }
 
 /* ============================================================
-   === BUTTON STYLES =========================================
+   === 游戏按钮（开始/重新开始） =============================
    ============================================================ */
 
 .game-button {
+    display: block;
     background-color: rgba(79, 255, 255, 0.3);
     border: 2px solid #4ff;
     color: #4ff;
-    padding: 15px 40px;
-    font-size: 20px;
+    padding: clamp(12px, 2vh, 16px) clamp(30px, 8vw, 48px);
+    font-size: clamp(15px, 3vw, 20px);
+    min-height: 48px;               /* 触屏最小高度标准 */
+    min-width: 180px;
     cursor: pointer;
     text-transform: uppercase;
-    letter-spacing: 4px;
+    letter-spacing: clamp(3px, 0.8vw, 6px);
+    border-radius: 8px;
     transition: all 0.3s ease;
+    -webkit-tap-highlight-color: transparent;  /* 移除移动端点击高亮 */
+    touch-action: manipulation;                /* 禁止双击缩放 */
 }
 
 .game-button:hover {
@@ -157,8 +169,13 @@ canvas {
     box-shadow: 0 0 20px rgba(79, 255, 255, 0.8);
 }
 
+.game-button:active {
+    transform: scale(0.96);
+    background-color: rgba(79, 255, 255, 0.8);
+}
+
 /* ============================================================
-   === INSTRUCTIONS PANEL ====================================
+   === 指令面板（旧版遗留） ==================================
    ============================================================ */
 
 .instructions {
@@ -172,7 +189,7 @@ canvas {
 }
 
 /* ============================================================
-   === GAME OVER OVERLAY ====================================
+   === 游戏结束覆盖层（旧版遗留 ID） ==========================
    ============================================================ */
 
 #gameOverOverlay {
@@ -193,7 +210,7 @@ canvas {
 
 #restartButton {
     padding: 15px 40px;
-    font-size: 24px;
+    font-size: clamp(16px, 3vw, 24px);
     margin-top: 20px;
     cursor: pointer;
     background-color: #3399ff;
@@ -217,16 +234,111 @@ canvas {
 }
 
 /* ============================================================
-   === RESPONSIVE ADJUSTMENTS ================================
+   === 移动端控制按钮（子弹 + 导弹） ==========================
    ============================================================ */
 
+.mobile-controls {
+    display: none;                       /* 默认隐藏，开始游戏后由 JS 切换为 flex */
+    position: fixed;
+    bottom: clamp(10px, 3vh, 24px);      /* 固定在底部，自适应边距 */
+    right: clamp(8px, 3vw, 20px);         /* 固定在右侧，不超出屏幕 */
+    gap: clamp(10px, 2.5vw, 16px);        /* 按钮间距自适应 */
+    z-index: 200;
+    pointer-events: none;                  /* 容器不拦截事件，按钮自行启用 */
+}
+
+.mobile-btn {
+    width: clamp(52px, 10vw, 68px);        /* 按钮尺寸自适应，最小 52px */
+    height: clamp(52px, 10vw, 68px);
+    border-radius: 50%;                    /* 圆形按钮 */
+    border: 2px solid rgba(79, 255, 255, 0.6);
+    background: rgba(0, 20, 40, 0.7);
+    color: #4ff;
+    font-size: clamp(22px, 4.5vw, 30px);  /* 图标字体大小 */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    pointer-events: auto;                  /* 按钮本身响应点击 */
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    transition: all 0.15s ease;
+    user-select: none;
+    -webkit-user-select: none;
+    box-shadow: 0 0 15px rgba(79, 255, 255, 0.2);
+    /* 防止被移出屏幕边缘 */
+    position: relative;
+    flex-shrink: 0;
+}
+
+/* 子弹按钮（闪电图标） */
+.bullet-btn {
+    border-color: rgba(255, 230, 50, 0.6);
+    color: #ffe838;
+    box-shadow: 0 0 15px rgba(255, 230, 50, 0.2);
+}
+
+/* 导弹按钮（爆炸图标） */
+.missile-btn {
+    border-color: rgba(255, 80, 50, 0.6);
+    color: #ff6a4a;
+    box-shadow: 0 0 15px rgba(255, 80, 50, 0.2);
+}
+
+/* 按钮按下状态 */
+.mobile-btn:active {
+    transform: scale(0.88);
+    background: rgba(79, 255, 255, 0.3);
+}
+
+/* 按下的原子发光 */
+.bullet-btn:active {
+    box-shadow: 0 0 25px rgba(255, 230, 50, 0.5);
+    background: rgba(255, 230, 50, 0.2);
+}
+
+.missile-btn:active {
+    box-shadow: 0 0 25px rgba(255, 80, 50, 0.5);
+    background: rgba(255, 80, 50, 0.2);
+}
+
+/* ============================================================
+   === 响应式适配 =============================================
+   ============================================================ */
+
+/* 小屏幕（手机竖屏）— 调整按钮间距和字号 */
+@media (max-width: 480px) {
+    .mobile-controls {
+        bottom: 8px;
+        right: 6px;
+        gap: 8px;
+    }
+
+    .mobile-btn {
+        width: 48px;
+        height: 48px;
+        font-size: 20px;
+    }
+
+    .overlay-title {
+        font-size: 32px;
+    }
+
+    .game-button {
+        min-width: 140px;
+        padding: 10px 20px;
+        font-size: 14px;
+    }
+}
+
+/* 中等屏幕（平板/手机横屏） */
 @media (max-width: 800px) {
     .overlay-title {
-        font-size: 48px;
+        font-size: clamp(28px, 7vw, 48px);
     }
-    
+
     .game-button {
         padding: 12px 30px;
-        font-size: 16px;
+        font-size: clamp(13px, 2.5vw, 16px);
     }
 }

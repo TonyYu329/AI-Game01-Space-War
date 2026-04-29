@@ -1,0 +1,12 @@
+# 依赖
+node_modules/
+
+# 操作系统
+.DS_Store
+Thumbs.db
+
+# 编辑器
+.vscode/settings.local.json
+
+# 截图
+screenshot_*.png

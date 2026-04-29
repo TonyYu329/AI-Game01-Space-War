@@ -2,7 +2,7 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Space War - 太空战机</title>
     
     <!-- ============================================================
@@ -30,14 +30,9 @@
         <!-- HUD (Heads-Up Display) -->
         <div class="game-hud" id="hudContainer"></div>
         
-        <!-- Start Screen Overlay -->
+        <!-- 开始界面覆盖层 -->
         <div class="start-screen" id="startScreen">
             <h1 class="overlay-title">Space War</h1>
-            <p class="overlay-subtitle">
-                鼠标移动控制战机<br/>
-                左键点击射击<br/>
-                躲避陨石，生存更久！
-            </p>
             <button class="game-button" id="startButton">开始游戏</button>
         </div>
         
@@ -47,7 +42,15 @@
             <p class="overlay-subtitle">最终得分：<span id="finalScore"></span></p>
             <button class="game-button" id="restartButton">重新开始</button>
         </div>
-        
+
+    </div>
+
+    <!-- ============================================================
+         === 移动端控制按钮（子弹 + 导弹） ====================
+         ============================================================ -->
+    <div class="mobile-controls" id="mobileControls">
+        <button class="mobile-btn bullet-btn" id="btnBullet">⚡</button>
+        <button class="mobile-btn missile-btn" id="btnMissile">💥</button>
     </div>
 
     <!-- ============================================================

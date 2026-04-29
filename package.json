@@ -1,0 +1,28 @@
+{
+  "name": "aicodetest1",
+  "version": "2.0.0",
+  "description": "20260424-VSCode+Cline+Deepseek3.2自主创作。",
+  "main": "index.js",
+  "directories": {
+    "doc": "doc"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/TonyYu329/AI-Game01-Space-War.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/TonyYu329/AI-Game01-Space-War/issues"
+  },
+  "homepage": "https://github.com/TonyYu329/AI-Game01-Space-War#readme",
+  "dependencies": {
+    "playwright": "^1.59.1",
+    "pngjs": "^7.0.0"
+  }
+}
