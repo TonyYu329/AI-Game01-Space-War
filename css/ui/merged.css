@@ -242,7 +242,7 @@ canvas {
     position: fixed;
     bottom: clamp(10px, 3vh, 24px);      /* 固定在底部，自适应边距 */
     right: clamp(8px, 3vw, 20px);         /* 固定在右侧，不超出屏幕 */
-    gap: clamp(10px, 2.5vw, 16px);        /* 按钮间距自适应 */
+    gap: clamp(52px, 10vw, 68px);          /* 按钮间距 = 一个按钮直径 */
     z-index: 200;
     pointer-events: none;                  /* 容器不拦截事件，按钮自行启用 */
 }
@@ -311,7 +311,7 @@ canvas {
     .mobile-controls {
         bottom: 8px;
         right: 6px;
-        gap: 8px;
+        gap: 48px;                          /* 小屏按钮间距 = 按钮直径 48px */
     }
 
     .mobile-btn {
@@ -337,8 +337,4 @@ canvas {
         font-size: clamp(28px, 7vw, 48px);
     }
 
-    .game-button {
-        padding: 12px 30px;
-        font-size: clamp(13px, 2.5vw, 16px);
-    }
-}
+    .game-button

@@ -2,7 +2,7 @@
  * @file index_cjs.js — 太空战机游戏主引擎
  * @description 使用 Canvas 2D + Web Audio API 实现的太空射击游戏
  * @date 2026-04-29
- * @version 2.0.0
+ * @version 2.0.1
  *
  * 核心功能：
  * - 飞船鼠标/触屏控制，自动射击系统
