@@ -234,6 +234,23 @@ canvas {
 }
 
 /* ============================================================
+   === 移动端按钮发光动画 ====================================
+   ============================================================ */
+
+@keyframes btn-glow {
+  0%, 100% { box-shadow: 0 0 15px rgba(79, 255, 255, 0.2); }
+  50% { box-shadow: 0 0 40px rgba(79, 255, 255, 0.6); }
+}
+@keyframes bullet-glow {
+  0%, 100% { box-shadow: 0 0 15px rgba(255, 230, 50, 0.2); }
+  50% { box-shadow: 0 0 40px rgba(255, 230, 50, 0.6); }
+}
+@keyframes missile-glow {
+  0%, 100% { box-shadow: 0 0 15px rgba(255, 80, 50, 0.2); }
+  50% { box-shadow: 0 0 40px rgba(255, 80, 50, 0.6); }
+}
+
+/* ============================================================
    === 移动端控制按钮（子弹 + 导弹） ==========================
    ============================================================ */
 
@@ -241,20 +258,20 @@ canvas {
     display: none;                       /* 默认隐藏，开始游戏后由 JS 切换为 flex */
     position: fixed;
     bottom: clamp(10px, 3vh, 24px);      /* 固定在底部，自适应边距 */
-    right: clamp(8px, 3vw, 20px);         /* 固定在右侧，不超出屏幕 */
-    gap: clamp(52px, 10vw, 68px);          /* 按钮间距 = 一个按钮直径 */
+    right: clamp(78px, 15vw, 102px);      /* 距右边缘 = 一个按钮直径 */
+    gap: clamp(78px, 15vw, 102px);         /* 按钮间距 = 一个按钮直径 */
     z-index: 200;
     pointer-events: none;                  /* 容器不拦截事件，按钮自行启用 */
 }
 
 .mobile-btn {
-    width: clamp(52px, 10vw, 68px);        /* 按钮尺寸自适应，最小 52px */
-    height: clamp(52px, 10vw, 68px);
+    width: clamp(78px, 15vw, 102px);        /* 按钮 1.5 倍放大 */
+    height: clamp(78px, 15vw, 102px);
     border-radius: 50%;                    /* 圆形按钮 */
     border: 2px solid rgba(79, 255, 255, 0.6);
     background: rgba(0, 20, 40, 0.7);
     color: #4ff;
-    font-size: clamp(22px, 4.5vw, 30px);  /* 图标字体大小 */
+    font-size: clamp(30px, 6vw, 40px);     /* 图标字体放大 1.5 倍 */
     display: flex;
     align-items: center;
     justify-content: center;
@@ -265,6 +282,7 @@ canvas {
     transition: all 0.15s ease;
     user-select: none;
     -webkit-user-select: none;
+    animation: btn-glow 3s ease-in-out infinite;  /* 缓慢发光闪烁 */
     box-shadow: 0 0 15px rgba(79, 255, 255, 0.2);
     /* 防止被移出屏幕边缘 */
     position: relative;
@@ -275,6 +293,7 @@ canvas {
 .bullet-btn {
     border-color: rgba(255, 230, 50, 0.6);
     color: #ffe838;
+    animation: bullet-glow 3s ease-in-out infinite;
     box-shadow: 0 0 15px rgba(255, 230, 50, 0.2);
 }
 
@@ -282,6 +301,7 @@ canvas {
 .missile-btn {
     border-color: rgba(255, 80, 50, 0.6);
     color: #ff6a4a;
+    animation: missile-glow 3s ease-in-out infinite;
     box-shadow: 0 0 15px rgba(255, 80, 50, 0.2);
 }
 
@@ -310,14 +330,14 @@ canvas {
 @media (max-width: 480px) {
     .mobile-controls {
         bottom: 8px;
-        right: 6px;
-        gap: 48px;                          /* 小屏按钮间距 = 按钮直径 48px */
+        right: 72px;                         /* 距右边缘 = 按钮直径 72px */
+        gap: 72px;                           /* 按钮间距 = 按钮直径 72px */
     }
 
     .mobile-btn {
-        width: 48px;
-        height: 48px;
-        font-size: 20px;
+        width: 72px;                          /* 小屏按钮 1.5 倍 = 72px */
+        height: 72px;
+        font-size: 28px;
     }
 
     .overlay-title {
@@ -337,4 +357,8 @@ canvas {
         font-size: clamp(28px, 7vw, 48px);
     }
 
-    .game-button
+    .game-button {
+        padding: 12px 30px;
+        font-size: clamp(13px, 2.5vw, 16px);
+    }
+}

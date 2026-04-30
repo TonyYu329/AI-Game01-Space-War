@@ -2,7 +2,7 @@
  * @file index_cjs.js — 太空战机游戏主引擎
  * @description 使用 Canvas 2D + Web Audio API 实现的太空射击游戏
  * @date 2026-04-29
- * @version 2.0.1
+ * @version 3.0.0
  *
  * 核心功能：
  * - 飞船鼠标/触屏控制，自动射击系统
@@ -409,6 +409,7 @@
                     shoot('machinegun', { single: true });
                 }
             });
+            btnBullet.addEventListener('contextmenu', (e) => e.preventDefault());
         }
 
         /** 导弹按钮 —— 发射炮弹 */
@@ -430,6 +431,7 @@
                     shoot('cannon');
                 }
             });
+            btnMissile.addEventListener('contextmenu', (e) => e.preventDefault());
         }
     }
 
