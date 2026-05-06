@@ -133,12 +133,23 @@ var WORDS_A = ['娜娜','小傻瓜','小祖宗','小宝贝','小乖乖','小马'
 var WORDS_B = ['漂亮','可爱','貌美','乖乖','囡囡','丫头','萌娃','明眸','翘睫','水灵','粉嫩','软萌','清甜','娇俏','甜美','温柔','软糯','萌趣','美颜','清丽','可人','讨喜','娇憨','软甜','灵秀','娟秀','萌甜','俏美','温婉','娇柔','莹润','秀雅','甜糯','灵动','乖巧','软嫩','娇美','优雅'];
 var floatingWords = [];
 var wordSpawnTimer = 0;
+var gameWordTimer = 0;    // 游戏开始后的帧计数，前120帧（2秒）只出现WORDS_A
+var wordAIndex = 0;       // WORDS_A按顺序出现的索引
 
 function spawnFloatingWord() {
-  // A类概率是B类的2倍：A 66.7%, B 33.3%
-  var isA = Math.random() < 0.8;  // A:B = 4:1
-  var list = isA ? WORDS_A : WORDS_B;
-  var text = list[Math.floor(Math.random() * list.length)];
+  // 前2秒（120帧）只出现WORDS_A的词语
+  var onlyA = gameWordTimer < 120;
+  var isA = onlyA ? true : (Math.random() < 0.75);
+
+  // A类按数组顺序依次出现，B类随机
+  var text;
+  if (isA) {
+    text = WORDS_A[wordAIndex % WORDS_A.length];
+    wordAIndex++;
+  } else {
+    text = WORDS_B[Math.floor(Math.random() * WORDS_B.length)];
+  }
+
   var hue = Math.random() * 60 + 180; // 180-240 (蓝紫色系)
   floatingWords.push({
     text: text,
@@ -148,13 +159,29 @@ function spawnFloatingWord() {
     alpha: 0.03,
     speed: 0.3 + Math.random() * 0.5,
     hue: hue,
-    life: 0
+    life: 0,
+    paused: isA,              // A类词：先停留2秒再漂浮
+    pauseFrames: isA ? 120 : 0  // 120帧 ≈ 2秒
   });
 }
 
 function updateFloatingWords() {
   for (var i = floatingWords.length - 1; i >= 0; i--) {
     var w = floatingWords[i];
+
+    // A类词先停留2秒再开始漂浮
+    if (w.paused && w.pauseFrames > 0) {
+      w.pauseFrames--;
+      w.life++;
+      // 停留期间呼吸闪烁效果（透明度在0.15~0.30之间波动，清晰可见）
+      w.alpha = 0.15 + Math.sin(w.life * 0.12) * 0.07 + 0.08;
+      continue;
+    }
+    // 暂停结束，恢复正常漂浮
+    if (w.paused && w.pauseFrames <= 0) {
+      w.paused = false;
+    }
+
     w.y += w.speed;
     w.fontSize += 0.08;
     w.life++;
@@ -184,6 +211,67 @@ function drawFloatingWords() {
     ctx.shadowBlur = w.fontSize * 0.5;
     ctx.shadowColor = 'hsla(' + w.hue + ',80%,60%,0.15)';
     ctx.fillText(w.text, w.x, w.y);
+    ctx.restore();
+  }
+}
+
+// ==============================
+// === 爱意数字背景 ==============
+// ==============================
+var loveNumbers = [];
+var loveNumberList = ['520', '521', '1314', '5201314', '99', '999', '1314520', '3344'];
+var loveNumberSpawnTimer = 0;
+
+function spawnLoveNumber() {
+  if (loveNumbers.length >= 3) return;
+  var text = loveNumberList[Math.floor(Math.random() * loveNumberList.length)];
+  loveNumbers.push({
+    text: text,
+    x: Math.random() * gameWidth,
+    y: CONFIG.DESIGN_HEIGHT * (0.1 + Math.random() * 0.5),
+    fontSize: 6,
+    alpha: 0.02,
+    life: 0,
+    hue: Math.random() * 360,           // 随机色相，每次不同颜色
+    sat: 35 + Math.floor(Math.random() * 25),  // 饱和度35-60%（偏浅）
+    light: 72 + Math.floor(Math.random() * 16), // 亮度72-88%（偏亮/浅色）
+    maxFontSize: 240  // 4倍飞船尺寸（飞船约56px）
+  });
+}
+
+function updateLoveNumbers() {
+  for (var i = loveNumbers.length - 1; i >= 0; i--) {
+    var ln = loveNumbers[i];
+    ln.life++;
+
+    if (ln.life <= 300) {
+      // 生长阶段：前300帧（约5秒），由小变大，透明度增加
+      ln.fontSize = 6 + (ln.life / 300) * (ln.maxFontSize - 6);
+      ln.alpha = 0.02 + (ln.life / 300) * 0.28;
+    } else if (ln.life <= 600) {
+      // 消退阶段：保持最大尺寸，透明度逐渐归零
+      ln.fontSize = ln.maxFontSize;
+      var fadeProgress = (ln.life - 300) / 300;
+      ln.alpha = Math.max(0, 0.30 * (1 - fadeProgress));
+    } else {
+      // 生命周期结束，移除
+      loveNumbers.splice(i, 1);
+    }
+  }
+}
+
+function drawLoveNumbers() {
+  for (var i = 0; i < loveNumbers.length; i++) {
+    var ln = loveNumbers[i];
+    ctx.save();
+    ctx.globalAlpha = ln.alpha;
+    ctx.font = 'bold ' + ln.fontSize + 'px "Microsoft YaHei","微软雅黑",sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = 'hsla(' + ln.hue + ',' + ln.sat + '%,' + ln.light + '%,' + ln.alpha + ')';
+    ctx.shadowBlur = ln.fontSize * 0.3;
+    ctx.shadowColor = 'hsla(' + ln.hue + ',' + ln.sat + '%,' + (ln.light - 20) + '%,0.15)';
+    ctx.fillText(ln.text, ln.x, ln.y);
     ctx.restore();
   }
 }
@@ -661,6 +749,7 @@ function update() {
   }
   if (state.current !== 'running') return;
   state.time += 1;
+  gameWordTimer += 1;
 
   // ---- 星河词语生成 ----
   wordSpawnTimer += 1;
@@ -669,6 +758,14 @@ function update() {
     spawnFloatingWord();
   }
   updateFloatingWords();
+
+  // ---- 爱意数字生成 ----
+  loveNumberSpawnTimer += 1;
+  if (loveNumberSpawnTimer >= 120 + Math.floor(Math.random() * 180) && gameWordTimer >= 240) {
+    loveNumberSpawnTimer = 0;
+    spawnLoveNumber();
+  }
+  updateLoveNumbers();
 
   // ---- 陨石生成 ----
   meteorSpawnTimer += 1;
@@ -777,7 +874,10 @@ function renderBackground() {
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, gameWidth, CONFIG.DESIGN_HEIGHT);
 
-  // 绘制星河词语（在星星之后，更融入背景）
+  // 绘制爱意数字（在星星之后，星河词语之前）
+  drawLoveNumbers();
+
+  // 绘制星河词语
   drawFloatingWords();
 
   backgroundStars.forEach(function(star) {
@@ -1074,6 +1174,8 @@ function resetEntities() {
   meteors = []; bullets = []; particles = [];
   shockwaves = []; heatHazes = []; muzzleFlashes = [];
   floatingWords = []; wordSpawnTimer = 0;
+  gameWordTimer = 0; wordAIndex = 0;
+  loveNumbers = []; loveNumberSpawnTimer = 0;
   meteorSpawnTimer = 0;
   state.shake = 0; state.flash = 0; state.deathStartedAt = 0;
   plane.x = gameWidth / 2 - plane.width / 2;
