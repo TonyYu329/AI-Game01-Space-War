@@ -63,7 +63,7 @@ body{margin:0;overflow:hidden;background:#000;touch-action:none;}
 @keyframes missile-glow{0%,100%{box-shadow:0 0 15px rgba(255,80,50,0.2)}50%{box-shadow:0 0 40px rgba(255,80,50,0.6)}}
 .mobile-controls{
   display:none;position:fixed;
-  bottom:clamp(10px,3vh,24px);right:clamp(78px,15vw,102px);
+  bottom:clamp(10px,3vh,24px);left:50%;transform:translateX(-50%);
   gap:clamp(78px,15vw,102px);z-index:200;pointer-events:none;
 }
 .mobile-btn{
@@ -87,7 +87,7 @@ body{margin:0;overflow:hidden;background:#000;touch-action:none;}
 
 /* ===== 响应式 ===== */
 @media(max-width:480px){
-  .mobile-controls{bottom:8px;right:72px;gap:72px;}
+  .mobile-controls{bottom:8px;left:50%;transform:translateX(-50%);gap:72px;}
   .mobile-btn{width:72px;height:72px;font-size:28px;}
   .overlay-title{font-size:32px;}
   .game-button{min-width:140px;padding:10px 20px;font-size:14px;}

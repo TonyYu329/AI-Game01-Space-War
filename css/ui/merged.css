@@ -258,7 +258,8 @@ canvas {
     display: none;                       /* 默认隐藏，开始游戏后由 JS 切换为 flex */
     position: fixed;
     bottom: clamp(10px, 3vh, 24px);      /* 固定在底部，自适应边距 */
-    right: clamp(78px, 15vw, 102px);      /* 距右边缘 = 一个按钮直径 */
+    left: 50%;                           /* 水平居中 */
+    transform: translateX(-50%);         /* 精确居中 */
     gap: clamp(78px, 15vw, 102px);         /* 按钮间距 = 一个按钮直径 */
     z-index: 200;
     pointer-events: none;                  /* 容器不拦截事件，按钮自行启用 */
@@ -330,7 +331,8 @@ canvas {
 @media (max-width: 480px) {
     .mobile-controls {
         bottom: 8px;
-        right: 72px;                         /* 距右边缘 = 按钮直径 72px */
+        left: 50%;                           /* 水平居中 */
+        transform: translateX(-50%);
         gap: 72px;                           /* 按钮间距 = 按钮直径 72px */
     }
 
