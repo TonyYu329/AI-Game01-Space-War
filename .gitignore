@@ -8,5 +8,8 @@ Thumbs.db
 # 编辑器
 .vscode/settings.local.json
 
+# Claude Code 工作树
+.claude/worktrees/
+
 # 截图
 screenshot_*.png
