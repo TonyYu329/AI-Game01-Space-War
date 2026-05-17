@@ -24,7 +24,12 @@
       "Bash(npm init *)",
       "Bash(npm install *)",
       "Bash(npm config *)",
-      "Bash(git status *)"
+      "Bash(git status *)",
+      "Bash(Select-Object Name)",
+      "Bash(git ls-tree *)",
+      "Bash(git worktree *)",
+      "Bash(git branch *)",
+      "Bash(git rm *)"
     ]
   }
 }
