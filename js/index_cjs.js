@@ -1560,7 +1560,7 @@ meteorSpawnTimer = 0;
         const gameOverScreen = document.getElementById('gameOverScreen');
         if (gameOverScreen) {
             const title = gameOverScreen.querySelector('.overlay-title');
-            if (title) title.textContent = isNewRecord ? '✦ NEW RECORD ✦' : 'GAME OVER';
+            if (title) title.textContent = 'GAME OVER';
 
             const subtitle = gameOverScreen.querySelector('.overlay-subtitle');
             if (subtitle) {
