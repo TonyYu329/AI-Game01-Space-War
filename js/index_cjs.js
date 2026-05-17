@@ -50,7 +50,8 @@
         lastMouseX: gameWidth / 2,          // 鼠标/触屏最后 X 坐标
         lastMouseY: CONFIG.DESIGN_HEIGHT * 0.75,  // 鼠标/触屏最后 Y 坐标
         time: 0,                    // 游戏帧计数器
-        deathStartedAt: 0           // 死亡动画开始时间
+        deathStartedAt: 0,          // 死亡动画开始时间
+        meteorsDestroyed: 0         // 累计击毁陨石数
     };
 
     // ================================================================
@@ -801,6 +802,7 @@
                     const hitMeteor = meteors[hitIndex];
                     createExplosion(hitMeteor.x, hitMeteor.y, 1.25);
                     meteors.splice(hitIndex, 1);
+                    state.meteorsDestroyed++;
                     /* 第三步：AOE 范围伤害——销毁 180px 内剩余陨石 */
                     for (let mIndex = meteors.length - 1; mIndex >= 0; mIndex--) {
                         const m = meteors[mIndex];
@@ -809,6 +811,7 @@
                         if (dx * dx + dy * dy < 180 * 180) {
                             createExplosion(m.x, m.y, 1.25);
                             state.score += m.isLarge ? 3 : 1;
+                            state.meteorsDestroyed++;
                             meteors.splice(mIndex, 1);
                         }
                     }
@@ -828,6 +831,7 @@
                             // 生命值为 0，陨石销毁
                             createExplosion(m.x, m.y, Math.min(1.25, m.radius / 38));
                             state.score += m.isLarge ? 3 : 1;
+                            state.meteorsDestroyed++;
                             meteors.splice(mIndex, 1);
                         } else {
                             // 还有生命值，产生小火花效果，大陨石生成固定裂缝几何
@@ -880,76 +884,186 @@
         });
     }
 
-    function drawPlane() {
+    /**
+     * @description 渲染 3D 科幻战机
+     * 10 层渲染管线：双引擎火焰 → 金属渐变机身 → 3D 明暗 → 装甲面板线
+     * → 驾驶舱玻璃 → 引擎进气口 → 引擎发光 → 导航灯
+     * 支持 optCtx 参数用于装饰 Canvas 渲染
+     * @param {CanvasRenderingContext2D} [optCtx] 可选上下文，默认使用全局 ctx
+     */
+    function drawPlane(optCtx) {
+        const c = optCtx || ctx;
         const cx = plane.x + plane.width / 2;
         const cy = plane.y + plane.height / 2;
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate(plane.tilt);
+        c.save();
+        c.translate(cx, cy);
+        c.rotate(plane.tilt);
 
-        const flameHeight = 30 + Math.sin(plane.flamePhase) * 7 + Math.random() * 8;
-        for (let i = 0; i < 3; i++) {
-            const grad = ctx.createLinearGradient(0, plane.height / 2 - 2, 0, plane.height / 2 + flameHeight);
-            grad.addColorStop(0, i === 0 ? '#ffffff' : '#ffd070');
-            grad.addColorStop(0.36, i === 0 ? '#42e7ff' : '#ff7a18');
-            grad.addColorStop(1, 'rgba(255,70,0,0)');
-            ctx.fillStyle = grad;
-            ctx.globalAlpha = 0.7 - i * 0.16;
-            ctx.beginPath();
-            ctx.moveTo(-10 + i * 2, plane.height / 2 - 3);
-            ctx.quadraticCurveTo(0, plane.height / 2 + flameHeight * (1 + i * 0.12), 10 - i * 2, plane.height / 2 - 3);
-            ctx.closePath();
-            ctx.fill();
+        const hw = plane.width / 2;     // 半宽 28
+        const hh = plane.height / 2;    // 半高 22
+        const flameHeight = 28 + Math.sin(plane.flamePhase) * 6 + Math.random() * 7;
+
+        // ========== 第 1 层：双引擎等离子火焰 ==========
+        const engineOffsets = [-9, 9];
+        for (let ei = 0; ei < engineOffsets.length; ei++) {
+            const fx = engineOffsets[ei];
+            for (let i = 0; i < 3; i++) {
+                const grad = c.createLinearGradient(fx, hh - 2, fx, hh + flameHeight * (1 + i * 0.1));
+                grad.addColorStop(0, '#ffffff');
+                grad.addColorStop(0.2, '#66eeff');
+                grad.addColorStop(0.5, '#2299ff');
+                grad.addColorStop(1, 'rgba(0,100,255,0)');
+                c.fillStyle = grad;
+                c.globalAlpha = 0.7 - i * 0.14;
+                c.beginPath();
+                c.moveTo(fx - 5 + i * 1.5, hh - 3);
+                c.quadraticCurveTo(fx + (Math.random() - 0.5) * 2, hh + flameHeight * (1 + i * 0.1), fx + 5 - i * 1.5, hh - 3);
+                c.closePath();
+                c.fill();
+            }
         }
-        ctx.globalAlpha = 1;
+        c.globalAlpha = 1;
 
-        ctx.shadowBlur = 24;
-        ctx.shadowColor = '#00f5ff';
-        const body = ctx.createRadialGradient(-8, -14, 4, 0, 0, 44);
-        body.addColorStop(0, '#eaffff');
-        body.addColorStop(0.28, '#54f6ff');
-        body.addColorStop(0.72, '#11758e');
-        body.addColorStop(1, '#062b3d');
-        ctx.fillStyle = body;
-        ctx.beginPath();
-        ctx.moveTo(0, -plane.height / 2 - 10);
-        ctx.lineTo(plane.width / 2, plane.height / 2 - 1);
-        ctx.quadraticCurveTo(16, 15, 0, plane.height / 2 + 5);
-        ctx.quadraticCurveTo(-16, 15, -plane.width / 2, plane.height / 2 - 1);
-        ctx.closePath();
-        ctx.fill();
-        ctx.shadowBlur = 0;
+        // ========== 第 2 层：机身底色（3D 径向渐变） ==========
+        c.shadowBlur = 28;
+        c.shadowColor = '#00ccff';
+        const bodyGrad = c.createRadialGradient(-6, -10, 3, 0, 0, 48);
+        bodyGrad.addColorStop(0,   '#88eeff');   // 镜面高光
+        bodyGrad.addColorStop(0.2, '#2a9cc8');   // 受光面
+        bodyGrad.addColorStop(0.5, '#0e4f6f');   // 中间调
+        bodyGrad.addColorStop(0.8, '#082438');   // 暗面
+        bodyGrad.addColorStop(1,   '#040e18');   // 阴影
+        c.fillStyle = bodyGrad;
 
-        ctx.strokeStyle = 'rgba(210,255,255,0.7)';
-        ctx.lineWidth = 1.2;
-        ctx.stroke();
+        // 宽体钻石形机身：尖锐机头 + 展开机翼 + 双引擎短舱
+        c.beginPath();
+        c.moveTo(0, -hh - 10);                   // 机头尖点
+        c.lineTo(hw * 0.5, -hh * 0.3);           // 右侧前机身
+        c.lineTo(hw * 0.9,  hh * 0.35);           // 右翼尖
+        c.quadraticCurveTo(hw * 0.7, hh * 0.65, hw * 0.28, hh * 0.6);  // 右翼后缘
+        c.lineTo(hw * 0.22, hh);                  // 右引擎舱尾
+        c.quadraticCurveTo(0, hh * 1.08, -hw * 0.22, hh);               // 后缘中心凹陷
+        c.lineTo(-hw * 0.28, hh * 0.6);           // 左引擎舱尾
+        c.quadraticCurveTo(-hw * 0.7, hh * 0.65, -hw * 0.9, hh * 0.35); // 左翼后缘
+        c.lineTo(-hw * 0.5, -hh * 0.3);           // 左侧前机身
+        c.closePath();
+        c.fill();
+        c.shadowBlur = 0;
 
-        ctx.fillStyle = 'rgba(4,16,32,0.85)';
-        ctx.strokeStyle = 'rgba(255,255,255,0.85)';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.ellipse(0, -10, 9, 13, 0, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-        ctx.fillStyle = 'rgba(255,255,255,0.55)';
-        ctx.beginPath();
-        ctx.ellipse(-3, -14, 3, 6, 0.35, 0, Math.PI * 2);
-        ctx.fill();
+        // ========== 第 3 层：边缘勾勒 ==========
+        c.strokeStyle = 'rgba(120,210,255,0.35)';
+        c.lineWidth = 1.0;
+        c.stroke();
 
-        ctx.save();
-        ctx.globalAlpha = 0.32;
-        ctx.strokeStyle = '#dfffff';
-        ctx.lineWidth = 2.5;
-        ctx.rotate(plane.propellerAngle);
-        for (let i = 0; i < 4; i++) {
-            ctx.rotate(Math.PI / 2);
-            ctx.beginPath();
-            ctx.moveTo(0, -plane.height / 2 - 4);
-            ctx.lineTo(0, -plane.height / 2 - 20);
-            ctx.stroke();
+        // ========== 第 4 层：3D 顶部高光 ==========
+        const hlGrad = c.createRadialGradient(0, -hh * 0.25, 2, 0, -hh * 0.1, hw * 0.55);
+        hlGrad.addColorStop(0, 'rgba(200,245,255,0.30)');
+        hlGrad.addColorStop(0.4, 'rgba(130,220,255,0.12)');
+        hlGrad.addColorStop(1, 'rgba(130,220,255,0)');
+        c.fillStyle = hlGrad;
+        c.beginPath();
+        c.moveTo(0, -hh - 8);
+        c.lineTo(hw * 0.35, -hh * 0.2);
+        c.lineTo(0, hh * 0.2);
+        c.lineTo(-hw * 0.35, -hh * 0.2);
+        c.closePath();
+        c.fill();
+
+        // ========== 第 5 层：3D 底部阴影 ==========
+        const shGrad = c.createRadialGradient(0, hh * 0.3, 4, 0, hh * 0.1, hw * 0.65);
+        shGrad.addColorStop(0, 'rgba(0,0,0,0)');
+        shGrad.addColorStop(0.5, 'rgba(0,0,0,0.06)');
+        shGrad.addColorStop(1, 'rgba(0,0,0,0.22)');
+        c.fillStyle = shGrad;
+        c.beginPath();
+        c.ellipse(0, hh * 0.15, hw * 0.6, hh * 0.4, 0, 0, Math.PI * 2);
+        c.fill();
+
+        // ========== 第 6 层：装甲面板线 ==========
+        c.strokeStyle = 'rgba(100,200,255,0.10)';
+        c.lineWidth = 0.6;
+        // 机身中线
+        c.beginPath();
+        c.moveTo(0, -hh - 6);
+        c.lineTo(0, hh * 0.55);
+        c.stroke();
+        // 两侧机翼结构线
+        for (let s of [-1, 1]) {
+            c.beginPath();
+            c.moveTo(s * hw * 0.3, -hh * 0.05);
+            c.lineTo(s * hw * 0.65, hh * 0.3);
+            c.stroke();
+            c.beginPath();
+            c.moveTo(s * hw * 0.48, 0);
+            c.lineTo(s * hw * 0.82, hh * 0.25);
+            c.stroke();
         }
-        ctx.restore();
-        ctx.restore();
+
+        // ========== 第 7 层：驾驶舱 ==========
+        // 座舱玻璃底色
+        c.fillStyle = 'rgba(4,16,32,0.75)';
+        c.strokeStyle = 'rgba(150,220,255,0.5)';
+        c.lineWidth = 1.0;
+        c.beginPath();
+        c.ellipse(0, -hh * 0.42, 7, 11, 0, 0, Math.PI * 2);
+        c.fill();
+        c.stroke();
+        // 座舱高光反射
+        c.fillStyle = 'rgba(180,235,255,0.22)';
+        c.beginPath();
+        c.ellipse(-2.5, -hh * 0.52, 2.5, 4.5, -0.2, 0, Math.PI * 2);
+        c.fill();
+        // 高光亮点
+        c.fillStyle = 'rgba(255,255,255,0.45)';
+        c.beginPath();
+        c.arc(-3.5, -hh * 0.58, 1.0, 0, Math.PI * 2);
+        c.fill();
+
+        // ========== 第 8 层：引擎进气口 ==========
+        for (let s of [-1, 1]) {
+            // 进气口暗色开孔
+            c.fillStyle = 'rgba(2,8,16,0.9)';
+            c.beginPath();
+            c.ellipse(s * 8, hh * 0.58, 4.5, 2.8, 0, 0, Math.PI * 2);
+            c.fill();
+            // 内部发光核心
+            c.fillStyle = 'rgba(0,150,255,0.18)';
+            c.beginPath();
+            c.ellipse(s * 8, hh * 0.58, 3.5, 1.8, 0, 0, Math.PI * 2);
+            c.fill();
+        }
+
+        // ========== 第 9 层：引擎发光扩散 ==========
+        c.shadowBlur = 22;
+        c.shadowColor = '#0088ff';
+        for (let s of [-1, 1]) {
+            c.fillStyle = 'rgba(0,136,255,0.10)';
+            c.beginPath();
+            c.ellipse(s * 8, hh + 1, 5, 3, 0, 0, Math.PI * 2);
+            c.fill();
+        }
+        c.shadowBlur = 0;
+
+        // ========== 第 10 层：导航灯/编队灯 ==========
+        const blinkL = Math.sin(state.time * 0.06) > 0;
+        const blinkR = Math.sin(state.time * 0.06 + Math.PI) > 0;
+        // 左翼尖红灯
+        c.fillStyle = blinkL ? 'rgba(255,60,60,0.85)' : 'rgba(255,60,60,0.15)';
+        c.beginPath();
+        c.arc(-hw * 0.9, hh * 0.35, 1.8, 0, Math.PI * 2);
+        c.fill();
+        // 右翼尖绿灯
+        c.fillStyle = blinkR ? 'rgba(60,255,60,0.85)' : 'rgba(60,255,60,0.15)';
+        c.beginPath();
+        c.arc(hw * 0.9, hh * 0.35, 1.8, 0, Math.PI * 2);
+        c.fill();
+        // 尾部黄色信标
+        c.fillStyle = Math.sin(state.time * 0.1) > 0 ? 'rgba(255,200,50,0.7)' : 'rgba(255,200,50,0.12)';
+        c.beginPath();
+        c.arc(0, hh + 2, 1.5, 0, Math.PI * 2);
+        c.fill();
+
+        c.restore();
     }
 
     /**
@@ -957,38 +1071,40 @@
      * 使用贝塞尔曲线绘制平滑轮廓，径向渐变模拟立体光照，
      * 陨石坑和微纹理增强岩石质感
      * @param {Object} m 陨石对象
+     * @param {CanvasRenderingContext2D} [optCtx] 可选上下文，默认使用全局 ctx
      */
-    function drawMeteor(m) {
-        ctx.save();
-        ctx.translate(m.x, m.y);
-        ctx.rotate(m.rotation);
+    function drawMeteor(m, optCtx) {
+        const drawCtx = optCtx || ctx;
+        drawCtx.save();
+        drawCtx.translate(m.x, m.y);
+        drawCtx.rotate(m.rotation);
 
         const r = m.radius;
         const pts = m.vertices;
         const ctrl = m.ctrlPoints;
 
         // ---- 第 1 层：绘制不规则轮廓（贝塞尔曲线） ----
-        ctx.beginPath();
-        ctx.moveTo(pts[0].x, pts[0].y);
+        drawCtx.beginPath();
+        drawCtx.moveTo(pts[0].x, pts[0].y);
         for (let i = 0; i < pts.length; i++) {
             const next = pts[(i + 1) % pts.length];
             const cp = ctrl[i];
-            ctx.quadraticCurveTo(cp.x, cp.y, next.x, next.y);
+            drawCtx.quadraticCurveTo(cp.x, cp.y, next.x, next.y);
         }
-        ctx.closePath();
+        drawCtx.closePath();
 
         // ---- 第 2 层：3D 球体渐变 — 5 层光源（左上） ----
-        const grad = ctx.createRadialGradient(-r * 0.28, -r * 0.30, 2, 0, 0, r * 1.2);
+        const grad = drawCtx.createRadialGradient(-r * 0.28, -r * 0.30, 2, 0, 0, r * 1.2);
         grad.addColorStop(0,   m.palette[0]);        // 镜面高光区（亮白/浅黄）
         grad.addColorStop(0.2, m.palette[0]);        // 受光面
         grad.addColorStop(0.5, m.palette[1]);        // 中间调
         grad.addColorStop(0.82, m.palette[2]);       // 暗面过渡
         grad.addColorStop(1,   m.palette[2]);        // 阴影面
-        ctx.shadowBlur = 8;
-        ctx.shadowColor = 'rgba(255,96,32,0.18)';
-        ctx.fillStyle = grad;
-        ctx.fill();
-        ctx.shadowBlur = 0;
+        drawCtx.shadowBlur = 8;
+        drawCtx.shadowColor = 'rgba(255,96,32,0.18)';
+        drawCtx.fillStyle = grad;
+        drawCtx.fill();
+        drawCtx.shadowBlur = 0;
 
         // ---- 第 4 层：陨石坑（透视椭圆模拟球面曲率） ----
         m.craters.forEach((c) => {
@@ -999,86 +1115,86 @@
             const angle = Math.atan2(c.y, c.x);
 
             // 4a. 陨石坑暗色凹陷（透视椭圆）
-            ctx.fillStyle = `rgba(10,5,3,${c.alpha + 0.12})`;
-            ctx.beginPath();
-            ctx.ellipse(c.x, c.y, cr * 1.1, cr * 1.1 * flatten, 0, 0, Math.PI * 2);
-            ctx.fill();
+            drawCtx.fillStyle = `rgba(10,5,3,${c.alpha + 0.12})`;
+            drawCtx.beginPath();
+            drawCtx.ellipse(c.x, c.y, cr * 1.1, cr * 1.1 * flatten, 0, 0, Math.PI * 2);
+            drawCtx.fill();
 
             // 4b. 陨石坑内侧亮弧（受光侧）
-            ctx.beginPath();
-            ctx.ellipse(c.x - cr * 0.08, c.y - cr * 0.08, cr * 1.0, cr * 1.0 * flatten, angle, 0, Math.PI * 2);
-            ctx.strokeStyle = `rgba(255,210,165,${c.alpha * 0.4})`;
-            ctx.lineWidth = 0.8;
-            ctx.stroke();
+            drawCtx.beginPath();
+            drawCtx.ellipse(c.x - cr * 0.08, c.y - cr * 0.08, cr * 1.0, cr * 1.0 * flatten, angle, 0, Math.PI * 2);
+            drawCtx.strokeStyle = `rgba(255,210,165,${c.alpha * 0.4})`;
+            drawCtx.lineWidth = 0.8;
+            drawCtx.stroke();
 
             // 4c. 陨石坑底部暗点（最深的部分）
-            ctx.fillStyle = `rgba(8,4,2,${c.alpha + 0.2})`;
-            ctx.beginPath();
-            ctx.ellipse(c.x + cr * 0.05, c.y + cr * 0.05, cr * 0.5, cr * 0.5 * flatten, 0, 0, Math.PI * 2);
-            ctx.fill();
+            drawCtx.fillStyle = `rgba(8,4,2,${c.alpha + 0.2})`;
+            drawCtx.beginPath();
+            drawCtx.ellipse(c.x + cr * 0.05, c.y + cr * 0.05, cr * 0.5, cr * 0.5 * flatten, 0, 0, Math.PI * 2);
+            drawCtx.fill();
         });
 
         // ---- 第 5 层：表面凹凸纹理 — 使用预先存储的固定数据（不闪烁） ----
         // 5a. 暗色斑点（原有斑点，渲染时加量）
         if (m.specks) {
             m.specks.forEach((sp) => {
-                ctx.fillStyle = `rgba(0,0,0,${sp.alpha * 1.2})`;
-                ctx.beginPath();
-                ctx.ellipse(sp.x, sp.y, sp.size * 1.2, sp.size * 0.8, sp.x * 0.1, 0, Math.PI * 2);
-                ctx.fill();
+                drawCtx.fillStyle = `rgba(0,0,0,${sp.alpha * 1.2})`;
+                drawCtx.beginPath();
+                drawCtx.ellipse(sp.x, sp.y, sp.size * 1.2, sp.size * 0.8, sp.x * 0.1, 0, Math.PI * 2);
+                drawCtx.fill();
             });
         }
         // 5b. 亮色凸起（受光面的岩石凸起，一次性生成不闪烁）
         if (m.brightSpecks) {
             m.brightSpecks.forEach((sp) => {
-                ctx.fillStyle = `rgba(180,160,120,${sp.alpha})`;
-                ctx.beginPath();
-                ctx.ellipse(sp.x, sp.y, sp.size, sp.elong, sp.x * 0.05, 0, Math.PI * 2);
-                ctx.fill();
+                drawCtx.fillStyle = `rgba(180,160,120,${sp.alpha})`;
+                drawCtx.beginPath();
+                drawCtx.ellipse(sp.x, sp.y, sp.size, sp.elong, sp.x * 0.05, 0, Math.PI * 2);
+                drawCtx.fill();
             });
         }
         // 5c. 细小颗粒（粗糙质感，一次性生成不闪烁）
         if (m.fineGrains) {
             m.fineGrains.forEach((g) => {
-                ctx.fillStyle = `rgba(${g.shade}, ${g.shade - 5}, ${g.shade - 8}, ${g.alpha})`;
-                ctx.beginPath();
-                ctx.arc(g.x, g.y, g.size, 0, Math.PI * 2);
-                ctx.fill();
+                drawCtx.fillStyle = `rgba(${g.shade}, ${g.shade - 5}, ${g.shade - 8}, ${g.alpha})`;
+                drawCtx.beginPath();
+                drawCtx.arc(g.x, g.y, g.size, 0, Math.PI * 2);
+                drawCtx.fill();
             });
         }
 
         // ---- 第 6 层：极微弱高光（无光泽球体只需轻微光照提示） ----
-        const specSoft = ctx.createRadialGradient(
+        const specSoft = drawCtx.createRadialGradient(
             -r * 0.12, -r * 0.16, 0,
             -r * 0.12, -r * 0.16, r * 0.3
         );
         specSoft.addColorStop(0, 'rgba(255,245,230,0.18)');
         specSoft.addColorStop(0.4, 'rgba(255,240,220,0.08)');
         specSoft.addColorStop(1, 'rgba(255,240,220,0)');
-        ctx.fillStyle = specSoft;
-        ctx.beginPath();
-        ctx.arc(-r * 0.12, -r * 0.16, r * 0.3, 0, Math.PI * 2);
-        ctx.fill();
+        drawCtx.fillStyle = specSoft;
+        drawCtx.beginPath();
+        drawCtx.arc(-r * 0.12, -r * 0.16, r * 0.3, 0, Math.PI * 2);
+        drawCtx.fill();
 
         // ---- 第 7 层：底部阴影弧（增强球体立体感） ----
-        const shadowGrad = ctx.createRadialGradient(
+        const shadowGrad = drawCtx.createRadialGradient(
             0, r * 0.3, r * 0.4,
             0, 0, r * 1.0
         );
         shadowGrad.addColorStop(0, 'rgba(0,0,0,0)');
         shadowGrad.addColorStop(0.7, 'rgba(0,0,0,0.08)');
         shadowGrad.addColorStop(1, 'rgba(0,0,0,0.22)');
-        ctx.fillStyle = shadowGrad;
-        ctx.beginPath();
-        ctx.arc(0, 0, r * 1.02, 0, Math.PI * 2);
-        ctx.fill();
+        drawCtx.fillStyle = shadowGrad;
+        drawCtx.beginPath();
+        drawCtx.arc(0, 0, r * 1.02, 0, Math.PI * 2);
+        drawCtx.fill();
 
         // ---- 第 8 层：边缘半透明轮廓线（让球体从背景中突出） ----
-        ctx.strokeStyle = `hsla(40, 15%, 60%, 0.08)`;
-        ctx.lineWidth = 1.0;
-        ctx.beginPath();
-        ctx.arc(0, 0, r, 0, Math.PI * 2);
-        ctx.stroke();
+        drawCtx.strokeStyle = `hsla(40, 15%, 60%, 0.08)`;
+        drawCtx.lineWidth = 1.0;
+        drawCtx.beginPath();
+        drawCtx.arc(0, 0, r, 0, Math.PI * 2);
+        drawCtx.stroke();
 
         /* 大陨石被击中后显示裂缝——使用预先存储的固定几何数据，不闪烁 */
         if (m.isLarge && m.hit && m.cracks && m.cracks.length > 0) {
@@ -1273,7 +1389,7 @@
         renderBackground();
         drawEffects();
         if (state.current === 'running' || state.current === 'dying' || state.current === 'game_over') {
-            meteors.forEach(drawMeteor);
+            meteors.forEach(m => drawMeteor(m));
             drawBullets();
             if (state.current === 'running' || state.current === 'game_over') drawPlane();
             drawParticles();
@@ -1296,25 +1412,28 @@
             const seconds = Math.floor((elapsed % 60000) / 1000);
             liveTime.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
         }
-    }
-
-    function startGameLoop() {
-        let accumulator = 0;
-        let lastTime = performance.now();
-        function loop(now) {
-            const delta = Math.min(50, now - lastTime);
-            lastTime = now;
-            accumulator += delta;
-            while (accumulator >= CONFIG.TARGET_DT) {
-                update();
-                accumulator -= CONFIG.TARGET_DT;
+        // 更新护盾条（玩家存活时始终满条，dying 时渐空）
+        const shieldFill = document.getElementById('shieldFill');
+        if (shieldFill) {
+            if (state.current === 'dying') {
+                const elapsed = performance.now() - state.deathStartedAt;
+                const pct = Math.max(0, 1 - elapsed / CONFIG.DEATH_EXPLOSION_MS);
+                shieldFill.style.width = `${pct * 100}%`;
+            } else {
+                shieldFill.style.width = '100%';
             }
-            updateHUD();
-            render();
-            animationFrameId = requestAnimationFrame(loop);
         }
-        if (animationFrameId) cancelAnimationFrame(animationFrameId);
-        animationFrameId = requestAnimationFrame(loop);
+        // 更新导弹冷却指示器
+        const missileInd = document.getElementById('missileIndicator');
+        if (missileInd) {
+            const now = performance.now();
+            const ready = now >= fireCooldown;
+            missileInd.textContent = ready ? '◆' : '◇';
+            missileInd.style.color = ready ? '#ff44aa' : 'rgba(200,216,232,0.35)';
+        }
+        // 更新击毁数
+        const liveKills = document.getElementById('liveKills');
+        if (liveKills) liveKills.textContent = state.meteorsDestroyed;
     }
 
     function buildHUD() {
@@ -1325,9 +1444,32 @@
             document.body.appendChild(hud);
         }
         hud.innerHTML = `
-            <div class="hud-row"><span class="hud-label">SCORE:</span> <span class="hud-value" id="liveScore">0</span></div>
-            <div class="hud-row"><span class="hud-label">TIME:</span> <span class="hud-value" id="liveTime">00:00</span></div>
-            <div class="hud-row" style="font-size:12px;opacity:.78">左键或J子弹 右键或K导弹 方向键移动</div>
+            <div class="hud-left">
+                <div class="hud-row">
+                    <span class="hud-label">SCORE</span>
+                    <span class="hud-value" id="liveScore">0</span>
+                </div>
+                <div class="hud-row">
+                    <span class="hud-label">TIME</span>
+                    <span class="hud-value" id="liveTime">00:00</span>
+                </div>
+            </div>
+            <div class="hud-right">
+                <div class="hud-row">
+                    <span class="hud-label">SHIELD</span>
+                    <div class="shield-bar">
+                        <div class="shield-fill" id="shieldFill"></div>
+                    </div>
+                </div>
+                <div class="hud-row">
+                    <span class="hud-label">MISSILE</span>
+                    <span class="missile-indicator" id="missileIndicator">◆</span>
+                </div>
+                <div class="hud-row hud-meteors">
+                    <span class="hud-label">KILLS</span>
+                    <span class="hud-value" id="liveKills">0</span>
+                </div>
+            </div>
         `;
     }
 
@@ -1343,7 +1485,7 @@ meteorSpawnTimer = 0;
         state.flash = 0;
         state.deathStartedAt = 0;
         plane.x = gameWidth / 2 - plane.width / 2;
-        plane.y = CONFIG.DESIGN_HEIGHT * 0.73;
+        plane.y = CONFIG.DESIGN_HEIGHT * 0.72;
         plane.vx = 0;
         plane.vy = 0;
         plane.tilt = 0;
@@ -1373,9 +1515,12 @@ meteorSpawnTimer = 0;
      */
     function startGame() {
         ensureAudio();
+        // 停止开始界面装饰循环
+        if (window._stopDecor) window._stopDecor();
         resetEntities();
         state.current = 'running';
         state.score = 0;
+        state.meteorsDestroyed = 0;
         state.startTime = Date.now();
         state.deathStartedAt = 0;
         buildHUD();
@@ -1398,25 +1543,142 @@ meteorSpawnTimer = 0;
     function gameOver() {
         state.current = 'game_over';
         if (canvas) canvas.style.cursor = 'default';
-        const finalScore = document.getElementById('finalScore');
-        if (finalScore) finalScore.textContent = state.score;
+
         const elapsed = Date.now() - state.startTime;
         const minutes = Math.floor(elapsed / 60000);
         const seconds = Math.floor((elapsed % 60000) / 1000);
-        const subtitle = document.querySelector('#gameOverScreen .overlay-subtitle');
-        if (subtitle) {
-            subtitle.innerHTML = `最终得分：<span id="finalScore">${state.score}</span><br/>生存时间：${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+        const timeStr = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+        // 更新最高分（localStorage）
+        const highScore = parseInt(localStorage.getItem('spacewar_highscore') || '0', 10);
+        const isNewRecord = state.score > highScore;
+        if (isNewRecord) {
+            localStorage.setItem('spacewar_highscore', String(state.score));
         }
+
+        // 更新 Game Over 覆盖层内容
         const gameOverScreen = document.getElementById('gameOverScreen');
-        if (gameOverScreen) gameOverScreen.style.display = 'flex';
+        if (gameOverScreen) {
+            const title = gameOverScreen.querySelector('.overlay-title');
+            if (title) title.textContent = isNewRecord ? '✦ NEW RECORD ✦' : 'GAME OVER';
+
+            const subtitle = gameOverScreen.querySelector('.overlay-subtitle');
+            if (subtitle) {
+                subtitle.innerHTML = `
+                    <div class="stat-row">得分 <span class="stat-val">${state.score}</span></div>
+                    <div class="stat-row">生存 <span class="stat-val">${timeStr}</span></div>
+                    <div class="stat-row">击毁 <span class="stat-val">${state.meteorsDestroyed}</span></div>
+                    <div class="stat-row stat-high">最高 <span class="stat-val">${Math.max(highScore, state.score)}</span></div>
+                `;
+            }
+            gameOverScreen.style.display = 'flex';
+        }
         if (mobileControls) mobileControls.style.display = 'none';
     }
     function resetGame() {
         startGame();
     }
+    /**
+     * @description 初始化开始界面 3D 装饰 Canvas，在 idle 状态下运行独立渲染循环
+     *              显示一颗缓慢自转的大型 3D 陨石和一艘静态展示的 3D 科幻战机
+     */
+    function initDecorCanvas() {
+        // 获取或创建装饰 Canvas（若 HTML 中已存在则复用）
+        let decorCanvas = document.getElementById('decorCanvas');
+        if (!decorCanvas) {
+            decorCanvas = document.createElement('canvas');
+            decorCanvas.id = 'decorCanvas';
+            const startScreen = document.getElementById('startScreen');
+            if (startScreen) {
+                startScreen.insertBefore(decorCanvas, startScreen.firstChild);
+            } else {
+                return; // 无开始界面，跳过装饰
+            }
+        }
+        decorCanvas.width = gameWidth;
+        decorCanvas.height = CONFIG.DESIGN_HEIGHT;
+
+        const decorCtx = decorCanvas.getContext('2d');
+
+        // 装饰用大型陨石（缓慢自转，固定在右上方展示）
+        const decorMeteor = {
+            x: gameWidth * 0.78,
+            y: CONFIG.DESIGN_HEIGHT * 0.30,
+            size: 2.0,
+            rotation: 0,
+            rotationSpeed: 0.004,
+            seed: 42,
+            numPoints: 14,
+            numCraters: 6,
+            baseRadius: 50
+        };
+
+        // 装饰用飞船位置（左下方展示，微微倾斜）
+        const decorPlaneX = gameWidth * 0.28;
+        const decorPlaneY = CONFIG.DESIGN_HEIGHT * 0.55;
+        const decorTilt = 0.08;
+
+        let decorAnimId = null;
+        let decorTimer = 0;
+
+        /**
+         * @description 装饰渲染循环：每帧更新陨石旋转并重绘陨石和飞船
+         */
+        function decorLoop() {
+            // 仅在 idle（开始界面）状态下运行
+            if (state.current !== 'idle') {
+                if (decorCanvas) decorCanvas.style.display = 'none';
+                decorAnimId = null;
+                return;
+            }
+            decorCanvas.style.display = '';
+            decorTimer++;
+
+            decorCtx.clearRect(0, 0, decorCanvas.width, decorCanvas.height);
+
+            // 更新陨石自转
+            decorMeteor.rotation += decorMeteor.rotationSpeed;
+
+            // 渲染 3D 陨石
+            drawMeteor(decorMeteor, decorCtx);
+
+            // 渲染 3D 飞船 — 临时覆盖 plane 属性以控制展示位置
+            const savedX = plane.x, savedY = plane.y;
+            const savedTilt = plane.tilt;
+            const savedFlame = plane.flamePhase;
+
+            plane.x = decorPlaneX;
+            plane.y = decorPlaneY;
+            plane.tilt = decorTilt;
+            plane.flamePhase = decorTimer * 0.05;
+
+            drawPlane(decorCtx);
+
+            plane.x = savedX;
+            plane.y = savedY;
+            plane.tilt = savedTilt;
+            plane.flamePhase = savedFlame;
+
+            decorAnimId = requestAnimationFrame(decorLoop);
+        }
+
+        // 启动装饰循环
+        decorAnimId = requestAnimationFrame(decorLoop);
+
+        // 暴露停止函数，供 startGame 调用以清理装饰循环
+        window._stopDecor = function () {
+            if (decorAnimId) {
+                cancelAnimationFrame(decorAnimId);
+                decorAnimId = null;
+            }
+            if (decorCanvas) decorCanvas.style.display = 'none';
+        };
+    }
+
     function initAllModules() {
         initCanvas();
         initBackgroundStars();
+        initDecorCanvas();
         initInput();
         mobileControls = document.getElementById('mobileControls');
         window.startGame = startGame;

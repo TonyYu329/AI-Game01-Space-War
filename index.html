@@ -4,7 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Space War - 太空战机</title>
-    
+
+    <!-- Google Fonts：科幻风格字体 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;900&family=Share+Tech+Mono&family=Exo+2:wght@300;400;600&display=swap" rel="stylesheet">
+
     <!-- ============================================================
          === CSS IMPORTS =======================================
          ============================================================ -->
@@ -33,14 +38,16 @@
         <!-- 开始界面覆盖层 -->
         <div class="start-screen" id="startScreen">
             <h1 class="overlay-title">Space War</h1>
+            <p class="overlay-subtitle">键盘方向键/WASD 移动 · J/左键射击 · K/右键导弹</p>
             <button class="game-button" id="startButton">开始游戏</button>
+            <span class="version-info">v3.2.0</span>
         </div>
         
         <!-- Game Over Overlay -->
         <div class="game-over-screen" id="gameOverScreen">
-            <h1 class="overlay-title" style="color: #ff4444;">Game Over</h1>
-            <p class="overlay-subtitle">最终得分：<span id="finalScore"></span></p>
-            <button class="game-button" id="restartButton">重新开始</button>
+            <h1 class="overlay-title">GAME OVER</h1>
+            <div class="overlay-subtitle"></div>
+            <button class="game-button" id="restartButton">再玩一次</button>
         </div>
 
     </div>
@@ -49,8 +56,16 @@
          === 移动端控制按钮（子弹 + 导弹） ====================
          ============================================================ -->
     <div class="mobile-controls" id="mobileControls">
-        <button class="mobile-btn bullet-btn" id="btnBullet">⚡</button>
-        <button class="mobile-btn missile-btn" id="btnMissile">💥</button>
+        <button class="mobile-btn bullet-btn" id="btnBullet">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <path d="M13 2L4 14h5l-2 8 10-12h-5z" fill="#ffdd44" stroke="#ffaa00" stroke-width="0.5"/>
+            </svg>
+        </button>
+        <button class="mobile-btn missile-btn" id="btnMissile">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2l-5 9h3.5L9 21l9-11h-4.5L16 2z" fill="#ff6622" stroke="#ff4400" stroke-width="0.5"/>
+            </svg>
+        </button>
     </div>
 
     <!-- ============================================================

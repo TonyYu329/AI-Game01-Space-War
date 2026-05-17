@@ -1,5 +1,38 @@
 # 更新日志
 
+## [3.2.0] — 2026-05-17
+
+### 新增
+- 飞船渲染升级为 3D 科幻星际战机：10 层渲染管线（双引擎等离子火焰、钻石形金属机身、3D 明暗光影、装甲面板线、驾驶舱玻璃、引擎进气口发光、导航灯/编队灯）
+- 开始界面 3D 装饰 Canvas：一颗缓慢自转的大型陨石 + 静态展示的 3D 战机
+- UI 全面重做为 Neon Space 霓虹太空主题：
+  - 设计 Token 系统（颜色、字体、间距、动画变量）
+  - 扫描线覆盖、径向渐变深空背景、星光粒子
+  - Orbitron 科幻标题字体、Share Tech Mono 等宽 HUD 字体
+  - 标题霓虹呼吸动画、按钮渐变发光 hover、Game Over glitch 闪烁
+  - HUD 双栏布局（左：分数/时间、右：护盾条/导弹指示器/击杀数）
+  - 游戏结束统计卡片逐条弹入动画
+  - 移动端 SVG 按钮图标替换 emoji（⚡→闪电图标、💥→导弹图标）
+  - 移动端按钮按下波纹扩散效果
+  - 200+ 行 CSS 动画系统（neon-pulse、scanline、fadeIn、scaleIn、glitch）
+  - 响应式适配 480px/800px/1024px 断点
+  - `prefers-reduced-motion` 无障碍支持
+- 游戏结束后显示更多统计数据（得分、生存时间、击毁数、最高分）
+- 最高分 localStorage 持久化存储
+- Google Fonts 加载：Orbitron、Share Tech Mono、Exo 2
+
+### 修改
+- `index.html` 添加 subtitle 操作提示和版本号
+- 开始界面按钮文字从「重新开始」改为「再玩一次」
+- HUD 中击杀计数使用青色 `#4488ff`，分数使用金色 `#ffd700`
+- 护盾条在 dying 状态渐空动画
+
+### 修复
+- 修复 `meteors.forEach(drawMeteor)` 将 Array.forEach 索引误传为 `optCtx` 参数导致渲染崩溃
+- 修复 `state.meteorsDestroyed` 从未重置导致重开后击杀数累加
+- 修复删除重复的 `startGameLoop()` 函数声明
+- 修复 `plane.y` 初始值与重置值不一致（6px 偏差）
+
 ## [3.1.1] — 2026-05-06
 
 ### 修改
