@@ -1,6 +1,6 @@
 # 星河战机 - Space War Game
 
-> 2026-04-24 VSCode+Cline+Deepseek 自主创作
+> 2026-04-24 VSCode+Cline+Deepseek 首次自主创作，后续由claudecode+DeepSeek修改发布。
 
 星河战机是一款基于 Canvas 的太空射击游戏，包含多个角色主题的游戏入口文件。游戏支持鼠标/键盘/触屏操作，具有丰富的视觉特效和音效系统。
 
