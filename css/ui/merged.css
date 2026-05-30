@@ -189,7 +189,6 @@ canvas {
 #liveScore {
     color: var(--clr-gold);
     text-shadow: 0 0 8px rgba(255, 215, 0, 0.5);
-    font-size: 1.15em;
 }
 
 /* 护盾条 */
@@ -211,13 +210,11 @@ canvas {
     box-shadow: 0 0 6px rgba(255, 68, 170, 0.5);
 }
 
-/* 导弹指示器 */
-.missile-indicator {
-    font-size: 1.2em;
+/* 导弹状态文字 */
+#liveMissile {
     color: var(--clr-accent);
     text-shadow: 0 0 6px rgba(255, 68, 170, 0.6);
     transition: color 0.15s ease;
-    line-height: 1;
 }
 
 /* 击杀数 */
@@ -275,17 +272,6 @@ canvas {
     line-height: 1.6;
 }
 
-/* 版本信息 */
-.version-info {
-    position: absolute;
-    bottom: var(--space-md);
-    right: var(--space-md);
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--clr-text-dim);
-    opacity: 0.5;
-    z-index: 2;
-}
 
 /* ============================================================
    === 按钮 ====================================================

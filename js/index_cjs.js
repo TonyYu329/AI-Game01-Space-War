@@ -1438,24 +1438,25 @@
             const seconds = Math.floor((elapsed % 60000) / 1000);
             liveTime.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
         }
-        // 更新护盾条（玩家存活时始终满条，dying 时渐空）
+        // 更新护盾（进度条 + 百分比文字）
         const shieldFill = document.getElementById('shieldFill');
+        const liveShield = document.getElementById('liveShield');
         if (shieldFill) {
+            let pct = 1;
             if (state.current === 'dying') {
                 const elapsed = performance.now() - state.deathStartedAt;
-                const pct = Math.max(0, 1 - elapsed / CONFIG.DEATH_EXPLOSION_MS);
-                shieldFill.style.width = `${pct * 100}%`;
-            } else {
-                shieldFill.style.width = '100%';
+                pct = Math.max(0, 1 - elapsed / CONFIG.DEATH_EXPLOSION_MS);
             }
+            shieldFill.style.width = `${pct * 100}%`;
+            if (liveShield) liveShield.textContent = `${Math.round(pct * 100)}%`;
         }
-        // 更新导弹冷却指示器
-        const missileInd = document.getElementById('missileIndicator');
-        if (missileInd) {
+        // 更新导弹状态文字
+        const liveMissile = document.getElementById('liveMissile');
+        if (liveMissile) {
             const now = performance.now();
             const ready = now >= fireCooldown;
-            missileInd.textContent = ready ? '◆' : '◇';
-            missileInd.style.color = ready ? '#ff44aa' : 'rgba(200,216,232,0.35)';
+            liveMissile.textContent = ready ? '●' : '○';
+            liveMissile.style.color = ready ? '#ff44aa' : 'rgba(200,216,232,0.35)';
         }
         // 更新击毁数
         const liveKills = document.getElementById('liveKills');
@@ -1472,6 +1473,10 @@
         hud.innerHTML = `
             <div class="hud-left">
                 <div class="hud-row">
+                    <span class="hud-label">VER</span>
+                    <span class="hud-value" id="hudVersion">3.4.1</span>
+                </div>
+                <div class="hud-row">
                     <span class="hud-label">SCORE</span>
                     <span class="hud-value" id="liveScore">0</span>
                 </div>
@@ -1483,13 +1488,14 @@
             <div class="hud-right">
                 <div class="hud-row">
                     <span class="hud-label">SHIELD</span>
+                    <span class="hud-value" id="liveShield">100%</span>
                     <div class="shield-bar">
                         <div class="shield-fill" id="shieldFill"></div>
                     </div>
                 </div>
                 <div class="hud-row">
                     <span class="hud-label">MISSILE</span>
-                    <span class="missile-indicator" id="missileIndicator">◆</span>
+                    <span class="hud-value" id="liveMissile">●</span>
                 </div>
                 <div class="hud-row hud-meteors">
                     <span class="hud-label">KILLS</span>
