@@ -71,6 +71,20 @@
     };
 
     // ================================================================
+    // === 飞船图片预加载 ==============================================
+    // ================================================================
+
+    const planeImage = new Image();
+    let planeImageLoaded = false;
+    planeImage.src = './image/plane64.png';
+    planeImage.onload = function () {
+        planeImageLoaded = true;
+    };
+    planeImage.onerror = function () {
+        // 图片加载失败时自动降级为 Canvas 绘制，游戏不受影响
+    };
+
+    // ================================================================
     // === 游戏对象数组 ================================================
     // ================================================================
 
@@ -885,9 +899,8 @@
     }
 
     /**
-     * @description 渲染 3D 科幻战机
-     * 10 层渲染管线：双引擎火焰 → 金属渐变机身 → 3D 明暗 → 装甲面板线
-     * → 驾驶舱玻璃 → 引擎进气口 → 引擎发光 → 导航灯
+     * @description 渲染 3D 科幻战机（图片机身 + 动态火焰）
+     * 渲染管线：双引擎火焰 → 机身图片（降级 Canvas 绘制） → 引擎发光 → 导航灯
      * 支持 optCtx 参数用于装饰 Canvas 渲染
      * @param {CanvasRenderingContext2D} [optCtx] 可选上下文，默认使用全局 ctx
      */
@@ -924,113 +937,126 @@
         }
         c.globalAlpha = 1;
 
-        // ========== 第 2 层：机身底色（3D 径向渐变） ==========
-        c.shadowBlur = 28;
-        c.shadowColor = '#00ccff';
-        const bodyGrad = c.createRadialGradient(-6, -10, 3, 0, 0, 48);
-        bodyGrad.addColorStop(0,   '#88eeff');   // 镜面高光
-        bodyGrad.addColorStop(0.2, '#2a9cc8');   // 受光面
-        bodyGrad.addColorStop(0.5, '#0e4f6f');   // 中间调
-        bodyGrad.addColorStop(0.8, '#082438');   // 暗面
-        bodyGrad.addColorStop(1,   '#040e18');   // 阴影
-        c.fillStyle = bodyGrad;
+        // ========== 第 2 层：机身图片 ==========
+        if (planeImageLoaded) {
+            // 使用预加载的 plane.png，添加辉光保持视觉深度
+            c.shadowBlur = 25;
+            c.shadowColor = '#00ccff';
+            const imgW = 56;  // 匹配碰撞宽度
+            const imgH = 56;  // 匹配机头到机尾范围
+            c.drawImage(planeImage, -imgW / 2, -imgH / 2 + 4, imgW, imgH);
+            c.shadowBlur = 0;
+        } else {
+            // === 降级方案：原始 Canvas 绘制（第2-8层） ===
 
-        // 宽体钻石形机身：尖锐机头 + 展开机翼 + 双引擎短舱
-        c.beginPath();
-        c.moveTo(0, -hh - 10);                   // 机头尖点
-        c.lineTo(hw * 0.5, -hh * 0.3);           // 右侧前机身
-        c.lineTo(hw * 0.9,  hh * 0.35);           // 右翼尖
-        c.quadraticCurveTo(hw * 0.7, hh * 0.65, hw * 0.28, hh * 0.6);  // 右翼后缘
-        c.lineTo(hw * 0.22, hh);                  // 右引擎舱尾
-        c.quadraticCurveTo(0, hh * 1.08, -hw * 0.22, hh);               // 后缘中心凹陷
-        c.lineTo(-hw * 0.28, hh * 0.6);           // 左引擎舱尾
-        c.quadraticCurveTo(-hw * 0.7, hh * 0.65, -hw * 0.9, hh * 0.35); // 左翼后缘
-        c.lineTo(-hw * 0.5, -hh * 0.3);           // 左侧前机身
-        c.closePath();
-        c.fill();
-        c.shadowBlur = 0;
+            // ========== 第 2 层降级：机身底色（3D 径向渐变） ==========
+            c.shadowBlur = 28;
+            c.shadowColor = '#00ccff';
+            const bodyGrad = c.createRadialGradient(-6, -10, 3, 0, 0, 48);
+            bodyGrad.addColorStop(0,   '#88eeff');   // 镜面高光
+            bodyGrad.addColorStop(0.2, '#2a9cc8');   // 受光面
+            bodyGrad.addColorStop(0.5, '#0e4f6f');   // 中间调
+            bodyGrad.addColorStop(0.8, '#082438');   // 暗面
+            bodyGrad.addColorStop(1,   '#040e18');   // 阴影
+            c.fillStyle = bodyGrad;
 
-        // ========== 第 3 层：边缘勾勒 ==========
-        c.strokeStyle = 'rgba(120,210,255,0.35)';
-        c.lineWidth = 1.0;
-        c.stroke();
-
-        // ========== 第 4 层：3D 顶部高光 ==========
-        const hlGrad = c.createRadialGradient(0, -hh * 0.25, 2, 0, -hh * 0.1, hw * 0.55);
-        hlGrad.addColorStop(0, 'rgba(200,245,255,0.30)');
-        hlGrad.addColorStop(0.4, 'rgba(130,220,255,0.12)');
-        hlGrad.addColorStop(1, 'rgba(130,220,255,0)');
-        c.fillStyle = hlGrad;
-        c.beginPath();
-        c.moveTo(0, -hh - 8);
-        c.lineTo(hw * 0.35, -hh * 0.2);
-        c.lineTo(0, hh * 0.2);
-        c.lineTo(-hw * 0.35, -hh * 0.2);
-        c.closePath();
-        c.fill();
-
-        // ========== 第 5 层：3D 底部阴影 ==========
-        const shGrad = c.createRadialGradient(0, hh * 0.3, 4, 0, hh * 0.1, hw * 0.65);
-        shGrad.addColorStop(0, 'rgba(0,0,0,0)');
-        shGrad.addColorStop(0.5, 'rgba(0,0,0,0.06)');
-        shGrad.addColorStop(1, 'rgba(0,0,0,0.22)');
-        c.fillStyle = shGrad;
-        c.beginPath();
-        c.ellipse(0, hh * 0.15, hw * 0.6, hh * 0.4, 0, 0, Math.PI * 2);
-        c.fill();
-
-        // ========== 第 6 层：装甲面板线 ==========
-        c.strokeStyle = 'rgba(100,200,255,0.10)';
-        c.lineWidth = 0.6;
-        // 机身中线
-        c.beginPath();
-        c.moveTo(0, -hh - 6);
-        c.lineTo(0, hh * 0.55);
-        c.stroke();
-        // 两侧机翼结构线
-        for (let s of [-1, 1]) {
+            // 宽体钻石形机身：尖锐机头 + 展开机翼 + 双引擎短舱
             c.beginPath();
-            c.moveTo(s * hw * 0.3, -hh * 0.05);
-            c.lineTo(s * hw * 0.65, hh * 0.3);
-            c.stroke();
-            c.beginPath();
-            c.moveTo(s * hw * 0.48, 0);
-            c.lineTo(s * hw * 0.82, hh * 0.25);
-            c.stroke();
-        }
-
-        // ========== 第 7 层：驾驶舱 ==========
-        // 座舱玻璃底色
-        c.fillStyle = 'rgba(4,16,32,0.75)';
-        c.strokeStyle = 'rgba(150,220,255,0.5)';
-        c.lineWidth = 1.0;
-        c.beginPath();
-        c.ellipse(0, -hh * 0.42, 7, 11, 0, 0, Math.PI * 2);
-        c.fill();
-        c.stroke();
-        // 座舱高光反射
-        c.fillStyle = 'rgba(180,235,255,0.22)';
-        c.beginPath();
-        c.ellipse(-2.5, -hh * 0.52, 2.5, 4.5, -0.2, 0, Math.PI * 2);
-        c.fill();
-        // 高光亮点
-        c.fillStyle = 'rgba(255,255,255,0.45)';
-        c.beginPath();
-        c.arc(-3.5, -hh * 0.58, 1.0, 0, Math.PI * 2);
-        c.fill();
-
-        // ========== 第 8 层：引擎进气口 ==========
-        for (let s of [-1, 1]) {
-            // 进气口暗色开孔
-            c.fillStyle = 'rgba(2,8,16,0.9)';
-            c.beginPath();
-            c.ellipse(s * 8, hh * 0.58, 4.5, 2.8, 0, 0, Math.PI * 2);
+            c.moveTo(0, -hh - 10);                   // 机头尖点
+            c.lineTo(hw * 0.5, -hh * 0.3);           // 右侧前机身
+            c.lineTo(hw * 0.9,  hh * 0.35);           // 右翼尖
+            c.quadraticCurveTo(hw * 0.7, hh * 0.65, hw * 0.28, hh * 0.6);  // 右翼后缘
+            c.lineTo(hw * 0.22, hh);                  // 右引擎舱尾
+            c.quadraticCurveTo(0, hh * 1.08, -hw * 0.22, hh);               // 后缘中心凹陷
+            c.lineTo(-hw * 0.28, hh * 0.6);           // 左引擎舱尾
+            c.quadraticCurveTo(-hw * 0.7, hh * 0.65, -hw * 0.9, hh * 0.35); // 左翼后缘
+            c.lineTo(-hw * 0.5, -hh * 0.3);           // 左侧前机身
+            c.closePath();
             c.fill();
-            // 内部发光核心
-            c.fillStyle = 'rgba(0,150,255,0.18)';
+            c.shadowBlur = 0;
+
+            // ========== 第 3 层降级：边缘勾勒 ==========
+            c.strokeStyle = 'rgba(120,210,255,0.35)';
+            c.lineWidth = 1.0;
+            c.stroke();
+
+            // ========== 第 4 层降级：3D 顶部高光 ==========
+            const hlGrad = c.createRadialGradient(0, -hh * 0.25, 2, 0, -hh * 0.1, hw * 0.55);
+            hlGrad.addColorStop(0, 'rgba(200,245,255,0.30)');
+            hlGrad.addColorStop(0.4, 'rgba(130,220,255,0.12)');
+            hlGrad.addColorStop(1, 'rgba(130,220,255,0)');
+            c.fillStyle = hlGrad;
             c.beginPath();
-            c.ellipse(s * 8, hh * 0.58, 3.5, 1.8, 0, 0, Math.PI * 2);
+            c.moveTo(0, -hh - 8);
+            c.lineTo(hw * 0.35, -hh * 0.2);
+            c.lineTo(0, hh * 0.2);
+            c.lineTo(-hw * 0.35, -hh * 0.2);
+            c.closePath();
             c.fill();
+
+            // ========== 第 5 层降级：3D 底部阴影 ==========
+            const shGrad = c.createRadialGradient(0, hh * 0.3, 4, 0, hh * 0.1, hw * 0.65);
+            shGrad.addColorStop(0, 'rgba(0,0,0,0)');
+            shGrad.addColorStop(0.5, 'rgba(0,0,0,0.06)');
+            shGrad.addColorStop(1, 'rgba(0,0,0,0.22)');
+            c.fillStyle = shGrad;
+            c.beginPath();
+            c.ellipse(0, hh * 0.15, hw * 0.6, hh * 0.4, 0, 0, Math.PI * 2);
+            c.fill();
+
+            // ========== 第 6 层降级：装甲面板线 ==========
+            c.strokeStyle = 'rgba(100,200,255,0.10)';
+            c.lineWidth = 0.6;
+            // 机身中线
+            c.beginPath();
+            c.moveTo(0, -hh - 6);
+            c.lineTo(0, hh * 0.55);
+            c.stroke();
+            // 两侧机翼结构线
+            for (let s of [-1, 1]) {
+                c.beginPath();
+                c.moveTo(s * hw * 0.3, -hh * 0.05);
+                c.lineTo(s * hw * 0.65, hh * 0.3);
+                c.stroke();
+                c.beginPath();
+                c.moveTo(s * hw * 0.48, 0);
+                c.lineTo(s * hw * 0.82, hh * 0.25);
+                c.stroke();
+            }
+
+            // ========== 第 7 层降级：驾驶舱 ==========
+            // 座舱玻璃底色
+            c.fillStyle = 'rgba(4,16,32,0.75)';
+            c.strokeStyle = 'rgba(150,220,255,0.5)';
+            c.lineWidth = 1.0;
+            c.beginPath();
+            c.ellipse(0, -hh * 0.42, 7, 11, 0, 0, Math.PI * 2);
+            c.fill();
+            c.stroke();
+            // 座舱高光反射
+            c.fillStyle = 'rgba(180,235,255,0.22)';
+            c.beginPath();
+            c.ellipse(-2.5, -hh * 0.52, 2.5, 4.5, -0.2, 0, Math.PI * 2);
+            c.fill();
+            // 高光亮点
+            c.fillStyle = 'rgba(255,255,255,0.45)';
+            c.beginPath();
+            c.arc(-3.5, -hh * 0.58, 1.0, 0, Math.PI * 2);
+            c.fill();
+
+            // ========== 第 8 层降级：引擎进气口 ==========
+            for (let s of [-1, 1]) {
+                // 进气口暗色开孔
+                c.fillStyle = 'rgba(2,8,16,0.9)';
+                c.beginPath();
+                c.ellipse(s * 8, hh * 0.58, 4.5, 2.8, 0, 0, Math.PI * 2);
+                c.fill();
+                // 内部发光核心
+                c.fillStyle = 'rgba(0,150,255,0.18)';
+                c.beginPath();
+                c.ellipse(s * 8, hh * 0.58, 3.5, 1.8, 0, 0, Math.PI * 2);
+                c.fill();
+            }
         }
 
         // ========== 第 9 层：引擎发光扩散 ==========
