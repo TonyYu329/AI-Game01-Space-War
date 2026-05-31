@@ -110,7 +110,9 @@
       "Bash(npx remotion *)",
       "Bash(npx tsc *)",
       "PowerShell(if \\(Test-Path nul\\) { \\(Get-Item nul\\).Length; Get-Content nul -TotalCount 5 } else { Write-Output \"nul file not found\" })",
-      "PowerShell(git add *)"
+      "PowerShell(git add *)",
+      "PowerShell(git rm *)",
+      "PowerShell(git push *)"
     ],
     "deny": [],
     "defaultMode": "plan"
