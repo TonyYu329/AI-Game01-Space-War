@@ -13,3 +13,15 @@ Thumbs.db
 
 # 截图
 screenshot_*.png
+
+# 日志文件
+logs/
+
+# Claude Code 会话数据
+.claude/data/
+
+# 大文件/设计源文件
+souce/
+
+# 空文件 / 临时文件
+nul

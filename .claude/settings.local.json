@@ -96,7 +96,21 @@
       "Bash(node -e \"const p = require('./package.json'); console.log('package.json version:', p.version);\")",
       "Bash(git add:*)",
       "Bash(git commit:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(powershell *)",
+      "Bash(cp -r \"F:/AISoftware/claudecode/skills/remotion-main/.claude/commands/\" \"C:/Users/tonyy/.claude/commands/remotion-dev/\")",
+      "Bash(cp \"F:/AISoftware/claudecode/skills/remotion-main/AGENTS.md\" \"C:/Users/tonyy/.claude/skills/remotion-dev/\")",
+      "Bash(cp \"F:/AISoftware/claudecode/skills/remotion-main/CLAUDE.md\" \"C:/Users/tonyy/.claude/skills/remotion-dev/CLAUDE-ref.md\")",
+      "Bash(npm --version)",
+      "Read(//d/Study/AICode/**)",
+      "Bash(npx --yes create-video@latest --template blank --name inner-strength-video)",
+      "Bash(mkdir -p \"D:/Study/AICode/inner-strength-video\")",
+      "Bash(mkdir -p src public)",
+      "Bash(npm install *)",
+      "Bash(npx remotion *)",
+      "Bash(npx tsc *)",
+      "PowerShell(if \\(Test-Path nul\\) { \\(Get-Item nul\\).Length; Get-Content nul -TotalCount 5 } else { Write-Output \"nul file not found\" })",
+      "PowerShell(git add *)"
     ],
     "deny": [],
     "defaultMode": "plan"

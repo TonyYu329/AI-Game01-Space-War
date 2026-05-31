@@ -1,55 +1,101 @@
-# 项目开发规范
+# CLAUDE.md
 
-## 一、交互语言与沟通规范（核心强制执行）
+<!-- Run /init to auto-populate (or CLAUDE_CODE_NEW_INIT=1 for interactive setup) -->
+<!-- Keep under 200 lines. If removing a line wouldn't cause mistakes, cut it -->
+<!-- HTML comments like these are stripped from context — free for maintainer notes -->
 
-1. **全中文交互**：
-   - 所有对话、指令、问题反馈、代码注释、文档说明，必须使用中文。禁止使用英文或任何混合语言。
-   - 所有报错信息、提示文案、日志输出，必须使用中文。
+## Project Overview
 
-2. **沟通边界**：
-   - 明确表达需求、边界、限制和期望结果，不得使用模糊或歧义词汇。
-   - 所有指令执行前，需确认理解无误；执行后，需给出明确的完成状态反馈。
+<!-- Fill in what Claude can't discover from reading code:
+- Name: [spacewar]
+- Stack: [js,html]
+- Description: [A game of shooting meteorites with a spaceship.]
+- Entry: [index.html]
+-->
 
-## 二、代码开发与注释规范（核心强制执行）
+## Build, Test & Verify
 
-1. **代码注释强制化**：
-   - 所有代码文件必须添加详细注释，包括但不限于：
-     - 文件头部注释：清晰说明文件功能、作者、创建日期、修改历史。
-     - 类/接口注释：说明类/接口的用途、核心职责、依赖关系。
-     - 关键函数/方法注释：说明功能、输入参数、输出结果、异常抛出。
-     - 复杂逻辑注释：任何非直观的业务逻辑、算法实现、状态转换，必须添加中文注释解释其目的和流程。
+<!-- The #1 way to improve Claude's output: give it verification commands.
+- Install: `bun install`
+- Dev: `bun dev`
+- Build: `bun run build`
+- Test (all): `bun test`
+- Test (single): `bun test path/to/test`
+- Lint: `bun run lint`
+- Type check: `bunx tsc --noEmit`
+-->
 
-2. **注释质量要求**：
-   - 清晰易懂：注释语言简洁、准确，避免使用模糊或歧义词汇。
-   - 信息完整：注释必须包含足够的上下文信息，便于他人理解和维护。
-   - 更新同步：代码修改时，必须同步更新相关注释，确保信息一致性。
+## Code Style
 
-3. **代码风格与结构**：
-   - 遵循项目既定的代码风格（命名规范、缩进、换行等）。
-   - 代码应结构清晰、职责单一，避免过度嵌套和复杂逻辑。
+<!-- Only rules that differ from language defaults:
+- 2-space indentation
+- ES module imports (not CommonJS)
+- Prefer named exports
+-->
 
-## 三、版本管理与变更规范
+## Architecture
 
-1. **版本号自动更新**：
-   - 每次完成一个功能模块、重大修改或版本发布，必须自动更新 package.json 中的版本号（遵循 SemVer 规范）。同时更新readme.md文件，增加版本号和修改说明。
+<!-- Key directories and data flow:
+- src/api/ — route handlers
+- src/lib/ — shared utilities
+- src/components/ — UI components
+-->
 
-2. **变更记录同步生成**：
-   - 所有修改必须同步更新 CHANGELOG.md，记录变更内容、影响范围、作者和日期。
-   - 版本号更新和 CHANGELOG.md 修改需作为一次完整操作完成，不可分割。
+---
 
-## 四、任务完成与交付标准
+## Rules
 
-1. **任务完成确认**：
-   - 所有任务完成后，必须使用中文明确汇报完成状态，包括：
-     - 完成的具体内容。
-     - 涉及的文件/模块列表。
-     - 验证结果（如测试通过、功能正常等）。
-   - 禁止使用任何英文或非中文表述完成状态。
+- **Investigate first:** Never speculate about code you have not read. Read files and ripgrep for usages before making claims. If uncertain, say so and propose how to verify
+- **Scope to the request:** Do what is asked; nothing more. When ambiguous, default to research and recommendations — only edit when explicitly asked. Do not refactor adjacent code or create abstractions for a single use
+- **Verify before done:** Re-check each requirement. Run tests and lint. State what changed, what was verified, and what could not be
+- **File discipline:** Edit existing files in place. Do not create new files unless required. Clean up scratch files
+- **Safety:** Ask before destructive actions (deleting files/branches, force pushes, hard resets, --no-verify)
+- **Efficiency:** Parallelize independent tool calls; serialize dependent ones
+- **Tools:** Use `rg` not grep, `fd` not find. `tree` is not installed
 
-2. **交付物清单**：
-   - 最终交付物必须包含完整的代码、注释、文档和变更记录。
-   - 所有交付物必须经过人工检查确认无误后方可提交。
+---
 
-## 使用说明
+## Memory Bank
 
-此规范为最终执行标准，所有后续交互和开发工作均需严格遵循。请在每次开始工作前，将此规范作为首要参考。
+This project uses CLAUDE-*.md files to retain context across sessions. Read only what your current task needs:
+
+| File | Read When |
+|------|-----------|
+| CLAUDE-activeContext.md | Session start — current state and goals |
+| CLAUDE-patterns.md | Before implementing — code patterns |
+| CLAUDE-decisions.md | Before design choices — architecture ADRs |
+| CLAUDE-troubleshooting.md | When debugging — known issues and fixes |
+| CLAUDE-config-variables.md | When touching config |
+
+All optional — check existence first. Exclude CLAUDE.md and CLAUDE-*.md from commits. Update after significant work (new patterns, decisions, fixes).
+
+<!-- BACKUP TIP: Create a private git repo for memory bank backups:
+     rsync -av ./CLAUDE.md ./CLAUDE-*.md ./.claude/ ~/my-project-memory-backup/
+     This keeps CLAUDE-*.md version-controlled privately while excluded from the public repo. -->
+
+### Memory Resilience
+
+When updating memory bank files, also sync key information into native auto memory (`~/.claude/projects/` memory directory). This dual-layer approach ensures project knowledge survives even if CLAUDE.md is reset:
+
+- **MEMORY.md index:** Maintain pointers to which CLAUDE-*.md files exist and their current topics
+- **Auto memory topic files:** Mirror critical patterns, architecture decisions, and build commands into memory topic files (e.g., `memory/patterns.md`, `memory/architecture.md`)
+- **Core rules:** After learning behavioral preferences from corrections, save them as auto memory entries so they persist independently
+
+This way, a fresh session after a CLAUDE.md wipe still has project context via auto memory.
+
+---
+
+## Context Layers
+
+| Layer | Location | Loads | Survives CLAUDE.md Reset |
+|-------|----------|-------|--------------------------|
+| Core rules & project context | This file | Always | No — rebuild from auto memory |
+| Auto memory index | `~/.claude/projects/.../memory/MEMORY.md` | Always (first 200 lines) | Yes |
+| Auto memory topics | `~/.claude/projects/.../memory/*.md` | On demand | Yes |
+| Path-scoped rules | `.claude/rules/*.md` | When matching files | Yes (separate files) |
+| User-level rules | `~/.claude/rules/*.md` | Always | Yes (separate files) |
+| Skills & workflows | `.claude/skills/` | On demand via `/skill-name` | Yes (separate files) |
+| Personal overrides | `CLAUDE.local.md` | Always (gitignored) | Depends on file |
+| Memory bank | CLAUDE-*.md | On demand | No — mirrored to auto memory |
+
+Use `/memory` to see which files are loaded in your session.
