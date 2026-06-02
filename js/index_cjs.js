@@ -466,18 +466,18 @@
     function generateCrackGeometry(radius) {
         var r = radius;
         var cracks = [];
-        var count = 5;
+        var count = 8;
         for (var ci = 0; ci < count; ci++) {
             var startA = (ci / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.6;
-            var startR = r * (0.08 + Math.random() * 0.25);
+            var startR = r * (0.02 + Math.random() * 0.12);
             var sx = Math.cos(startA) * startR;
             var sy = Math.sin(startA) * startR;
-            var segments = 4 + Math.floor(Math.random() * 3);
+            var segments = 6 + Math.floor(Math.random() * 4);
             var points = [];
             for (var seg = 0; seg < segments; seg++) {
-                var endA = startA + (Math.random() - 0.5) * 1.2;
-                var endR = startR + ((seg + 1) / segments) * r * 0.88;
-                if (endR > r * 0.95) break;
+                var endA = startA + (Math.random() - 0.5) * 1.0;
+                var endR = startR + ((seg + 1) / segments) * r * 0.96;
+                if (endR > r * 0.98) break;
                 points.push({
                     x: Math.cos(endA) * endR,
                     y: Math.sin(endA) * endR
@@ -498,30 +498,30 @@
         // 小陨石（60%）半径 18-26，需 1 发子弹击毁，得分 +1
         const isLarge = Math.random() < 0.4;
         const radius = isLarge ? (30 + Math.random() * 12) : (18 + Math.random() * 8);
-        // 增加顶点至 16-24 个，使圆形更平滑
-        const vertexCount = 16 + Math.floor(Math.random() * 9);
+        // 不规则岩石形状：20-30 个顶点，更大的半径变化
+        const vertexCount = 20 + Math.floor(Math.random() * 11);
         const vertices = [];
         for (let i = 0; i < vertexCount; i++) {
             const a = (i / vertexCount) * Math.PI * 2;
-            // 缩小半径偏移范围：0.88~1.0 × 半径，保持近乎圆形
-            const r = radius * (0.88 + Math.random() * 0.12);
+            // 0.65~1.0 半径变化，产生崎岖岩石感
+            const r = radius * (0.65 + Math.random() * 0.35);
             vertices.push({ x: Math.cos(a) * r, y: Math.sin(a) * r });
         }
 
-        // 生成控制点用于贝塞尔平滑（控制点偏移缩小到 ±8%）
+        // 贝塞尔控制点：更大偏移（±18%），曲线更不规则
         const ctrlPoints = [];
         for (let i = 0; i < vertexCount; i++) {
             const curr = vertices[i];
             const next = vertices[(i + 1) % vertexCount];
             ctrlPoints.push({
-                x: (curr.x + next.x) / 2 + (Math.random() - 0.5) * radius * 0.08,
-                y: (curr.y + next.y) / 2 + (Math.random() - 0.5) * radius * 0.08
+                x: (curr.x + next.x) / 2 + (Math.random() - 0.5) * radius * 0.18,
+                y: (curr.y + next.y) / 2 + (Math.random() - 0.5) * radius * 0.18
             });
         }
 
-        // 陨石坑 —— 数量更多，位置更随机
+        // 陨石坑 —— 更多更不均匀
         const craters = [];
-        const craterCount = 4 + Math.floor(radius / 8);
+        const craterCount = 5 + Math.floor(radius / 6);
         for (let i = 0; i < craterCount; i++) {
             const a = Math.random() * Math.PI * 2;
             const r = Math.random() * radius * 0.6;
@@ -533,25 +533,25 @@
             });
         }
 
-        // 表面微纹理斑点（增加数量使凹凸感更丰富）
+        // 表面微纹理斑点（增加数量使岩石凹凸感更强）
         const specks = [];
-        const speckCount = 5 + Math.floor(Math.random() * 6);
+        const speckCount = 8 + Math.floor(Math.random() * 8);
         for (let i = 0; i < speckCount; i++) {
             const a = Math.random() * Math.PI * 2;
-            const r = Math.random() * radius * 0.7;
+            const d2 = Math.random() * radius * 0.8;
             specks.push({
-                x: Math.cos(a) * r,
-                y: Math.sin(a) * r,
-                size: 2 + Math.random() * 6,
-                alpha: 0.08 + Math.random() * 0.12
+                x: Math.cos(a) * d2,
+                y: Math.sin(a) * d2,
+                size: 3 + Math.random() * 8,
+                alpha: 0.1 + Math.random() * 0.18
             });
         }
 
         const palette = [
-            ['#c48a4a', '#6b3820', '#1a0c06'],
-            ['#8b5540', '#4a2218', '#120806'],
-            ['#7a3a2a', '#3d1510', '#0d0403'],
-            ['#a06838', '#553018', '#150c05']
+            ['#9e8e7e', '#5a4a3a', '#1a1210'],
+            ['#8a8a84', '#4e4e48', '#121210'],
+            ['#968878', '#544838', '#14100c'],
+            ['#847a6e', '#4c4238', '#100e0a']
         ][Math.floor(Math.random() * 4)];
         // 亮色凸起斑点（受光面岩石凸起，一次性生成避免闪烁）
         const brightSpecks = [];
