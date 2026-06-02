@@ -163,14 +163,15 @@ canvas {
     gap: 6px;
 }
 
-.game-hud .hud-right {
-    align-items: flex-end;
+.game-hud .hud-left {
+    min-width: 110px;
 }
 
-.hud-row {
-    display: flex;
+.game-hud .hud-left .hud-row {
+    display: grid;
+    grid-template-columns: 54px 48px;
+    gap: 6px;
     align-items: center;
-    gap: 8px;
 }
 
 .hud-label {
@@ -178,11 +179,23 @@ canvas {
     font-size: 0.75em;
     letter-spacing: 2px;
     text-transform: uppercase;
+    text-align: left;
 }
 
 .hud-value {
     color: var(--clr-primary);
     font-variant-numeric: tabular-nums;
+    text-align: left;
+}
+
+.game-hud .hud-right {
+    align-items: flex-end;
+}
+
+.game-hud .hud-right .hud-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
 /* 分数使用金色 */
@@ -217,6 +230,44 @@ canvas {
     transition: color 0.15s ease;
 }
 
+/* FPS 颜色指示 */
+.fps-good { color: #00ccff !important; text-shadow: 0 0 6px rgba(0,200,255,0.5) !important; }
+.fps-ok   { color: #ffcc00 !important; text-shadow: 0 0 6px rgba(255,200,0,0.5) !important; }
+.fps-bad  { color: #ff4444 !important; text-shadow: 0 0 6px rgba(255,50,50,0.5) !important;
+            animation: fps-warn 0.5s ease-in-out infinite; }
+
+@keyframes fps-warn {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+/* 分数闪烁动画 */
+.score-flash {
+    animation: score-pop 0.35s ease-out;
+}
+@keyframes score-pop {
+    0%   { color: #ffffff; text-shadow: 0 0 20px rgba(255,255,255,1); }
+    100% { color: var(--clr-gold); text-shadow: 0 0 8px rgba(255,215,0,0.5); }
+}
+
+/* 护盾条分段 */
+.shield-bar {
+    background: repeating-linear-gradient(90deg,
+        rgba(255,255,255,0.06) 0px,
+        rgba(255,255,255,0.06) 9px,
+        rgba(255,255,255,0.01) 9px,
+        rgba(255,255,255,0.01) 10px
+    );
+}
+.shield-fill.danger {
+    background: linear-gradient(90deg, #ff3322, #ff6644) !important;
+    animation: danger-pulse 0.6s ease-in-out infinite;
+}
+@keyframes danger-pulse {
+    0%, 100% { box-shadow: 0 0 8px rgba(255,50,30,0.5); }
+    50% { box-shadow: 0 0 20px rgba(255,50,30,0.9); }
+}
+
 /* 击杀数 */
 .hud-meteors .hud-value {
     color: var(--clr-secondary);
@@ -232,7 +283,7 @@ canvas {
     left: 0;
     right: 0;
     bottom: 0;
-    background: radial-gradient(ellipse at 50% 35%, #0a0e28 0%, #02040d 80%);
+    background: radial-gradient(ellipse at 50% 35%, rgba(10,14,40,0.75) 0%, rgba(2,4,13,0.85) 80%);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -270,6 +321,20 @@ canvas {
     z-index: 2;
     max-width: min(480px, 85vw);
     line-height: 1.6;
+}
+
+.start-screen .overlay-version {
+    position: absolute;
+    bottom: 24px;
+    left: 0;
+    right: 0;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: rgba(200, 216, 232, 0.45);
+    text-align: center;
+    letter-spacing: 2px;
+    z-index: 2;
+    margin: 0;
 }
 
 
@@ -439,11 +504,13 @@ canvas {
 }
 
 .mobile-btn {
-    width: clamp(70px, 14vw, 92px);
-    height: clamp(70px, 14vw, 92px);
+    width: clamp(76px, 14vw, 92px);
+    height: clamp(76px, 14vw, 92px);
     border-radius: 50%;
-    border: 2px solid rgba(79, 255, 255, 0.5);
-    background: rgba(0, 16, 32, 0.75);
+    border: 1px solid rgba(79, 255, 255, 0.35);
+    background: transparent;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -456,12 +523,23 @@ canvas {
     position: relative;
     flex-shrink: 0;
     transition: all var(--dur-fast) ease;
-    animation: btn-glow 3s ease-in-out infinite;
-    box-shadow: 0 0 12px rgba(79, 255, 255, 0.15);
+    box-shadow: 0 0 24px rgba(79, 255, 255, 0.08), inset 0 0 30px rgba(79, 255, 255, 0.02);
     overflow: hidden;
 }
+.mobile-btn svg { width: 32px; height: 32px; }
 
-/* 波纹效果 */
+/* 主动发光光晕 */
+.mobile-btn::before {
+    content: '';
+    position: absolute;
+    top: -50%; left: -50%;
+    width: 200%; height: 200%;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 50%, rgba(79, 255, 255, 0.06) 0%, transparent 70%);
+    animation: btn-breath 3s ease-in-out infinite;
+    pointer-events: none;
+}
+/* 点击波纹 */
 .mobile-btn::after {
     content: '';
     position: absolute;
@@ -469,52 +547,55 @@ canvas {
     width: 0;
     height: 0;
     border-radius: 50%;
-    background: rgba(79, 255, 255, 0.15);
+    background: rgba(79, 255, 255, 0.2);
     transform: translate(-50%, -50%);
     transition: width 0.4s ease, height 0.4s ease;
 }
-
 .mobile-btn:active::after {
-    width: 160%;
-    height: 160%;
+    width: 170%;
+    height: 170%;
 }
 
-/* 子弹按钮 */
+/* 子弹按钮 — 金色能量 */
 .bullet-btn {
-    border-color: rgba(255, 230, 50, 0.5);
-    animation: bullet-glow 3s ease-in-out infinite;
-    box-shadow: 0 0 12px rgba(255, 230, 50, 0.12);
+    border-color: rgba(255, 200, 50, 0.5);
+    box-shadow: 0 0 30px rgba(255, 200, 50, 0.15), inset 0 0 30px rgba(255, 200, 30, 0.03);
 }
-
+.bullet-btn::before {
+    background: radial-gradient(circle at 50% 50%, rgba(255, 200, 50, 0.10) 0%, transparent 70%);
+    animation: bullet-glow 2.5s ease-in-out infinite;
+}
 .bullet-btn svg {
-    filter: drop-shadow(0 0 4px rgba(255, 220, 50, 0.6));
+    filter: drop-shadow(0 0 8px rgba(255, 220, 50, 0.8));
 }
 
-/* 导弹按钮 */
+/* 导弹按钮 — 橙红烈焰 */
 .missile-btn {
-    border-color: rgba(255, 80, 50, 0.5);
-    animation: missile-glow 3s ease-in-out infinite;
-    box-shadow: 0 0 12px rgba(255, 80, 50, 0.12);
+    border-color: rgba(255, 80, 40, 0.5);
+    box-shadow: 0 0 30px rgba(255, 80, 30, 0.18), inset 0 0 30px rgba(255, 60, 20, 0.04);
 }
-
+.missile-btn::before {
+    background: radial-gradient(circle at 50% 50%, rgba(255, 80, 30, 0.13) 0%, transparent 70%);
+    animation: missile-glow 2.5s ease-in-out infinite;
+}
 .missile-btn svg {
-    filter: drop-shadow(0 0 4px rgba(255, 100, 30, 0.6));
+    filter: drop-shadow(0 0 8px rgba(255, 100, 30, 0.8));
 }
 
 .mobile-btn:active {
-    transform: scale(0.88);
+    transform: scale(0.84);
 }
 
 .bullet-btn:active {
-    border-color: rgba(255, 230, 50, 0.8);
-    background: rgba(255, 230, 50, 0.15);
-    box-shadow: 0 0 25px rgba(255, 230, 50, 0.4);
+    border-color: rgba(255, 230, 50, 0.95);
+    background: radial-gradient(ellipse at 50% 50%, rgba(255, 200, 30, 0.25) 0%, rgba(4, 8, 20, 0.95) 100%);
+    box-shadow: 0 0 50px rgba(255, 230, 50, 0.5), inset 0 0 40px rgba(255, 200, 30, 0.1);
 }
 
 .missile-btn:active {
-    border-color: rgba(255, 80, 50, 0.8);
-    background: rgba(255, 80, 50, 0.15);
-    box-shadow: 0 0 25px rgba(255, 80, 50, 0.4);
+    border-color: rgba(255, 80, 50, 0.95);
+    background: radial-gradient(ellipse at 50% 50%, rgba(255, 80, 30, 0.28) 0%, rgba(4, 8, 20, 0.95) 100%);
+    box-shadow: 0 0 50px rgba(255, 80, 50, 0.5), inset 0 0 40px rgba(255, 60, 20, 0.12);
 }
 
 /* ============================================================
@@ -542,6 +623,20 @@ canvas {
 @keyframes scanline {
     0% { transform: translateY(0); }
     100% { transform: translateY(4px); }
+}
+
+/* 按钮呼吸发光 */
+@keyframes btn-breath {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 0.8; transform: scale(1.02); }
+}
+@keyframes bullet-glow {
+    0%, 100% { opacity: 0.2; transform: scale(0.95); }
+    50% { opacity: 0.9; transform: scale(1.05); }
+}
+@keyframes missile-glow {
+    0%, 100% { opacity: 0.25; transform: scale(0.95); }
+    50% { opacity: 0.9; transform: scale(1.05); }
 }
 
 /* 淡入 */

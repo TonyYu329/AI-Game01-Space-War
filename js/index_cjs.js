@@ -18,9 +18,9 @@
         DESIGN_HEIGHT: 600,         // 游戏世界坐标系高度
         TARGET_DT: 1000 / 60,       // 目标帧间隔（约 60 FPS）
         DEATH_EXPLOSION_MS: 2000,   // 死亡爆炸动画时长（毫秒）
-        MAX_METEORS: 18,            // 最大同时陨石数
-        MAX_BULLETS: 70,            // 最大同时子弹数
-        MAX_PARTICLES: 420,         // 最大同时粒子数
+        MAX_METEORS: 14,            // 最大同时陨石数
+        MAX_BULLETS: 50,            // 最大同时子弹数
+        MAX_PARTICLES: 400,         // 最大同时粒子数
         STAR_COUNT: 230,            // 背景星星数量
         BG_COLOR: '#02040d'         // 背景颜色
     };
@@ -36,6 +36,7 @@
     let fireCooldown = 0;           // 射击冷却时间
     let mobileControls = null;      // 移动端控制按钮容器（开始游戏后显示）
     const keys = {};                // 键盘按键状态（方向键移动用）
+    const mouseBtns = { left: false, right: false }; // 鼠标按钮持续按住状态
 
     // ================================================================
     // === 游戏状态管理 ================================================
@@ -76,9 +77,10 @@
 
     const planeImage = new Image();
     let planeImageLoaded = false;
-    planeImage.src = './image/plane64.png';
+    planeImage.src = './image/plane256.png';
     planeImage.onload = function () {
         planeImageLoaded = true;
+        window._planeImage = planeImage;
     };
     planeImage.onerror = function () {
         // 图片加载失败时自动降级为 Canvas 绘制，游戏不受影响
@@ -331,19 +333,22 @@
             movePlane(p.x, p.y);
         });
 
-        /* 鼠标左键 = 机枪，右键 = 导弹 */
+        /* 鼠标左键 = 机枪，右键 = 导弹（按住连续射击） */
         canvas.addEventListener('mousedown', (e) => {
             if (state.current !== 'running') return;
             e.preventDefault();
-            if (e.button === 2) {
-                shoot('cannon');
-            } else if (e.button === 0) {
-                shoot('machinegun', { single: true });
-            }
+            if (e.button === 0) mouseBtns.left = true;
+            if (e.button === 2) mouseBtns.right = true;
+        });
+        canvas.addEventListener('mouseup', (e) => {
+            if (e.button === 0) mouseBtns.left = false;
+            if (e.button === 2) mouseBtns.right = false;
         });
 
-        /* 鼠标离开画布时，飞船停在离鼠标最近的屏幕边界 */
+        /* 鼠标离开画布时，重置按钮状态，飞船停在边界 */
         canvas.addEventListener('mouseleave', () => {
+            mouseBtns.left = false;
+            mouseBtns.right = false;
             if (state.current !== 'running') return;
             const clampX = Math.max(0, Math.min(gameWidth, state.lastMouseX));
             const clampY = Math.max(0, Math.min(CONFIG.DESIGN_HEIGHT, state.lastMouseY));
@@ -648,6 +653,23 @@
             });
         });
         muzzleFlashes.push({ x, y: y - 12, life: isCannon ? 11 : 6, maxLife: isCannon ? 11 : 6, radius: isCannon ? 34 : 20 });
+        /* 枪口火花粒子 */
+        const sparkCount = isCannon ? 8 : 4;
+        for (let i = 0; i < sparkCount; i++) {
+            const a = Math.random() * Math.PI * 2;
+            const sp = (isCannon ? 4.5 : 2.5) * (0.6 + Math.random() * 0.8);
+            particles.push({
+                x, y: y - 12,
+                vx: Math.cos(a) * sp,
+                vy: Math.sin(a) * sp - 3,
+                size: (isCannon ? 2.5 : 1.5) * (0.6 + Math.random() * 0.8),
+                color: isCannon ? '255,200,60' : '255,240,100',
+                life: (isCannon ? 14 : 8) * (0.5 + Math.random() * 0.8),
+                maxLife: isCannon ? 14 : 8,
+                type: 'spark'
+            });
+        }
+        while (particles.length > CONFIG.MAX_PARTICLES) particles.shift();
         playShootSound(type, x);
     }
 
@@ -750,6 +772,7 @@
                 m.rotation += m.rotationSpeed * 0.6;
             });
             updateVisualEffects();
+            window._gameData = { plane, meteors, state, gameScale, gameWidth };
             if (performance.now() - state.deathStartedAt >= CONFIG.DEATH_EXPLOSION_MS) {
                 gameOver();
             }
@@ -779,11 +802,30 @@
         plane.x = Math.max(0, Math.min(gameWidth - plane.width, plane.x));
         plane.y = Math.max(0, Math.min(CONFIG.DESIGN_HEIGHT - plane.height, plane.y));
 
+        /* 按住鼠标时连续射击（cooldown 由 shoot 内部控制） */
+        if (mouseBtns.left)  shoot('machinegun');
+        if (mouseBtns.right) shoot('cannon');
+
         bullets.forEach((b) => {
             b.trail.push({ x: b.x, y: b.y });
             if (b.trail.length > (b.type === 'cannon' ? 10 : 7)) b.trail.shift();
             b.y -= b.speed;
             b.rotation += b.type === 'cannon' ? 0.08 : 0.18;
+            /* 弹道追踪粒子（每 5 帧产生 1 个） */
+            if (state.time % 5 === 0 && particles.length < CONFIG.MAX_PARTICLES - 5) {
+                const isMissile = b.type === 'cannon';
+                particles.push({
+                    x: b.x + (Math.random() - 0.5) * b.width,
+                    y: b.y + b.height * 0.6,
+                    vx: (Math.random() - 0.5) * 0.8,
+                    vy: 0.4 + Math.random() * 1.2,
+                    size: isMissile ? (2 + Math.random() * 4) : (1 + Math.random() * 2),
+                    color: isMissile ? '160,90,50' : '200,180,100',
+                    life: isMissile ? (20 + Math.random() * 25) : (10 + Math.random() * 12),
+                    maxLife: isMissile ? 45 : 22,
+                    type: isMissile ? 'smoke' : 'spark'
+                });
+            }
         });
         bullets = bullets.filter((b) => b.y + b.height > -20);
 
@@ -791,8 +833,49 @@
             m.y += m.speed;
             m.rotation += m.rotationSpeed;
             m.rotationSpeed *= 0.998;
+            /* 连续粒子拖尾：每帧 2 个粒子，形成密集彗尾 */
+            if (particles.length < CONFIG.MAX_PARTICLES - 2) {
+                for (let t = 0; t < 2; t++) {
+                    const behind = 0.3 + t * 0.55;
+                    particles.push({
+                        x: m.x + (Math.random() - 0.5) * m.radius * (0.3 + t * 0.3),
+                        y: m.y - m.radius * behind + (Math.random() - 0.5) * m.radius * 0.15,
+                        vx: (Math.random() - 0.5) * 0.25,
+                        vy: (Math.random() - 0.5) * 0.25 - 0.5,
+                        size: t === 0 ? (1.5 + Math.random() * 3) : (3 + Math.random() * 6),
+                        color: t === 0 ? '200,160,110' : '120,95,65',
+                        life: t === 0 ? (15 + Math.random() * 20) : (30 + Math.random() * 40),
+                        maxLife: t === 0 ? 38 : 70,
+                        type: 'smoke'
+                    });
+                }
+            }
         });
         meteors = meteors.filter((m) => m.y - m.radius < CONFIG.DESIGN_HEIGHT + 80);
+
+        /* ---- 陨石互撞检测 ---- */
+        for (let i = 0; i < meteors.length - 1; i++) {
+            for (let j = i + 1; j < meteors.length; j++) {
+                const a = meteors[i], b = meteors[j];
+                if (!a || !b) continue;
+                const dx = a.x - b.x, dy = a.y - b.y;
+                const minDist = a.radius + b.radius;
+                if (dx * dx + dy * dy < minDist * minDist) {
+                    const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2;
+                    const scale = Math.min(1.4, (a.radius + b.radius) / 55);
+                    createExplosion(mx, my, scale);
+                    a.health = 0; b.health = 0;
+                }
+            }
+        }
+        /* 清理互撞销毁的陨石 */
+        for (let i = meteors.length - 1; i >= 0; i--) {
+            if (meteors[i].health <= 0) {
+                state.score += meteors[i].isLarge ? 3 : 1;
+                state.meteorsDestroyed++;
+                meteors.splice(i, 1);
+            }
+        }
 
         /* ---- 子弹碰撞检测（含导弹 AOE） ---- */
         for (let bIndex = bullets.length - 1; bIndex >= 0; bIndex--) {
@@ -873,6 +956,8 @@
         }
 
         updateVisualEffects();
+        /* 暴露数据给 3D 渲染层 */
+        window._gameData = { plane, meteors, state, gameScale, gameWidth };
     }
 
     function renderBackground() {
@@ -1288,6 +1373,22 @@
                 ctx.save();
                 ctx.translate(b.x, b.y);
 
+                /* 弹头前方冲击波锥 */
+                const shockLen = 5 + Math.sin(state.time * 0.45) * 2;
+                ctx.save();
+                const shockGrad = ctx.createLinearGradient(0, -hh - shockLen, 0, -hh);
+                shockGrad.addColorStop(0, 'rgba(255,255,255,0)');
+                shockGrad.addColorStop(0.6, 'rgba(255,200,100,0.15)');
+                shockGrad.addColorStop(1, 'rgba(255,255,255,0.35)');
+                ctx.fillStyle = shockGrad;
+                ctx.beginPath();
+                ctx.moveTo(0, -hh - shockLen);
+                ctx.lineTo(-hw * 0.35, -hh);
+                ctx.lineTo(hw * 0.35, -hh);
+                ctx.closePath();
+                ctx.fill();
+                ctx.restore();
+
                 // 导弹发光
                 ctx.shadowBlur = 24;
                 ctx.shadowColor = '#ff8c1e';
@@ -1309,39 +1410,99 @@
                 ctx.fillStyle = bodyGrad;
                 ctx.fill();
 
-                // 尾部火焰（脉动橙色）
+                /* 导弹 3 层尾焰 */
                 ctx.shadowBlur = 0;
-                const flameLen = 6 + Math.sin(state.time * 0.35) * 3;
-                const flameGrad = ctx.createLinearGradient(0, hh - 2, 0, hh + flameLen);
-                flameGrad.addColorStop(0, 'rgba(255,220,100,0.9)');
-                flameGrad.addColorStop(0.4, 'rgba(255,120,20,0.6)');
-                flameGrad.addColorStop(1, 'rgba(255,50,0,0)');
-                ctx.fillStyle = flameGrad;
+                const fl = 7 + Math.sin(state.time * 0.4) * 4 + Math.random() * 3;
+                for (let l = 0; l < 3; l++) {
+                    const sf = 1 - l * 0.3;
+                    const fg = ctx.createLinearGradient(0, hh - 2, 0, hh + fl * sf);
+                    if (l === 0) {
+                        fg.addColorStop(0, '#ffffff');
+                        fg.addColorStop(0.3, '#88ccff');
+                        fg.addColorStop(1, 'rgba(0,150,255,0)');
+                        ctx.fillStyle = fg;
+                        ctx.beginPath();
+                        ctx.moveTo(-hw * 0.12, hh - 2);
+                        ctx.quadraticCurveTo(0, hh + fl * sf, hw * 0.12, hh - 2);
+                        ctx.closePath(); ctx.fill();
+                    } else if (l === 1) {
+                        fg.addColorStop(0, 'rgba(255,220,90,0.9)');
+                        fg.addColorStop(0.5, 'rgba(255,100,20,0.5)');
+                        fg.addColorStop(1, 'rgba(255,50,0,0)');
+                        ctx.fillStyle = fg;
+                        ctx.beginPath();
+                        ctx.moveTo(-hw * 0.22, hh - 2);
+                        ctx.quadraticCurveTo((Math.random()-0.5)*3, hh+fl*sf, hw*0.22, hh-2);
+                        ctx.closePath(); ctx.fill();
+                    } else {
+                        fg.addColorStop(0, 'rgba(255,140,40,0.5)');
+                        fg.addColorStop(1, 'rgba(255,30,0,0)');
+                        ctx.fillStyle = fg;
+                        ctx.beginPath();
+                        ctx.moveTo(-hw * 0.28, hh - 2);
+                        ctx.quadraticCurveTo(0, hh + fl * sf, hw * 0.28, hh - 2);
+                        ctx.closePath(); ctx.fill();
+                    }
+                }
+                ctx.restore();
+            } else {
+                /* 能量弹：梭形弹体 + 多层辉光 + 旋转能量环 */
+                /* 第 1 层：大型青色光晕 */
+                ctx.save();
+                ctx.translate(b.x, b.y);
+                const g1 = ctx.createRadialGradient(0, 0, 0, 0, 0, b.width * 2.2);
+                g1.addColorStop(0, 'rgba(0,200,255,0.22)');
+                g1.addColorStop(0.5, 'rgba(0,150,255,0.06)');
+                g1.addColorStop(1, 'rgba(0,100,255,0)');
+                ctx.fillStyle = g1;
                 ctx.beginPath();
-                ctx.moveTo(-hw * 0.25, hh - 2);
-                ctx.quadraticCurveTo(0, hh + flameLen, hw * 0.25, hh - 2);
+                ctx.arc(0, 0, b.width * 2.2, 0, Math.PI * 2);
+                ctx.fill();
+
+                /* 第 2 层：旋转能量环 × 2 */
+                for (let r = 0; r < 2; r++) {
+                    ctx.save();
+                    ctx.rotate(state.time * (0.2 + r * 0.15) + r * Math.PI / 2);
+                    ctx.strokeStyle = `rgba(0,220,255,${0.35 - r * 0.12})`;
+                    ctx.lineWidth = 0.7 - r * 0.15;
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, b.width * 1.8, b.height * 0.25, 0, 0, Math.PI * 2);
+                    ctx.stroke();
+                    ctx.restore();
+                }
+
+                /* 第 3 层：梭形弹体 */
+                ctx.shadowBlur = 18;
+                ctx.shadowColor = 'rgba(0,200,255,0.7)';
+                const bg = ctx.createLinearGradient(0, -b.height/2, 0, b.height/2);
+                bg.addColorStop(0, '#ffffff');
+                bg.addColorStop(0.15, '#ddeeff');
+                bg.addColorStop(0.4, 'rgb(0,180,255)');
+                bg.addColorStop(0.75, 'rgba(0,100,220,0.5)');
+                bg.addColorStop(1, 'rgba(0,50,180,0)');
+                ctx.fillStyle = bg;
+                ctx.beginPath();
+                ctx.moveTo(0, -b.height * 0.7);
+                ctx.quadraticCurveTo(b.width * 0.5, -b.height * 0.15, b.width * 0.2, b.height * 0.4);
+                ctx.quadraticCurveTo(0, b.height * 0.5, -b.width * 0.2, b.height * 0.4);
+                ctx.quadraticCurveTo(-b.width * 0.5, -b.height * 0.15, 0, -b.height * 0.7);
                 ctx.closePath();
                 ctx.fill();
 
-                ctx.restore();
-            } else {
-                /* 普通子弹：矩形 + 拖尾光效 */
-                b.trail.forEach((t, i) => {
-                    const a = (i + 1) / b.trail.length;
-                    ctx.fillStyle = `rgba(${b.color},${a * 0.2})`;
-                    ctx.fillRect(t.x - b.width * a, t.y, b.width * 2 * a, b.height * a);
-                });
-                ctx.save();
-                ctx.translate(b.x, b.y);
-                ctx.rotate(b.rotation);
-                ctx.shadowBlur = 16;
-                ctx.shadowColor = b.glow;
-                const grad = ctx.createLinearGradient(0, -b.height / 2, 0, b.height / 2);
-                grad.addColorStop(0, '#ffffff');
-                grad.addColorStop(0.35, `rgb(${b.color})`);
-                grad.addColorStop(1, 'rgba(255,80,20,0.45)');
-                ctx.fillStyle = grad;
-                ctx.fillRect(-b.width / 2, -b.height / 2, b.width, b.height);
+                /* 第 4 层：尾部光束拖尾 */
+                ctx.shadowBlur = 0;
+                const tg = ctx.createLinearGradient(0, b.height * 0.3, 0, b.height * 1.6);
+                tg.addColorStop(0, 'rgba(0,180,255,0.5)');
+                tg.addColorStop(1, 'rgba(0,100,255,0)');
+                ctx.fillStyle = tg;
+                ctx.beginPath();
+                ctx.moveTo(-b.width * 0.15, b.height * 0.3);
+                ctx.lineTo(-b.width * 0.05, b.height * 1.6);
+                ctx.lineTo(b.width * 0.05, b.height * 1.6);
+                ctx.lineTo(b.width * 0.15, b.height * 0.3);
+                ctx.closePath();
+                ctx.fill();
+
                 ctx.restore();
             }
         });
@@ -1415,9 +1576,8 @@
         renderBackground();
         drawEffects();
         if (state.current === 'running' || state.current === 'dying' || state.current === 'game_over') {
-            meteors.forEach(m => drawMeteor(m));
+            /* 陨石和战机已由 3D 渲染层 (index_3d.js) 绘制 */
             drawBullets();
-            if (state.current === 'running' || state.current === 'game_over') drawPlane();
             drawParticles();
         }
         if (state.flash > 0.01) {
@@ -1429,8 +1589,17 @@
 
     function updateHUD() {
         if (state.current !== 'running') return;
+        /* 分数（含闪烁动画） */
         const liveScore = document.getElementById('liveScore');
-        if (liveScore) liveScore.textContent = state.score;
+        if (liveScore) {
+            const prev = liveScore.textContent;
+            liveScore.textContent = state.score;
+            if (String(state.score) !== prev && state.score > 0) {
+                liveScore.classList.remove('score-flash');
+                void liveScore.offsetWidth;
+                liveScore.classList.add('score-flash');
+            }
+        }
         const liveTime = document.getElementById('liveTime');
         if (liveTime) {
             const elapsed = Date.now() - state.startTime;
@@ -1438,7 +1607,7 @@
             const seconds = Math.floor((elapsed % 60000) / 1000);
             liveTime.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
         }
-        // 更新护盾（进度条 + 百分比文字）
+        /* 护盾 + 危险状态 */
         const shieldFill = document.getElementById('shieldFill');
         const liveShield = document.getElementById('liveShield');
         if (shieldFill) {
@@ -1448,9 +1617,11 @@
                 pct = Math.max(0, 1 - elapsed / CONFIG.DEATH_EXPLOSION_MS);
             }
             shieldFill.style.width = `${pct * 100}%`;
+            if (pct < 0.3) shieldFill.classList.add('danger');
+            else shieldFill.classList.remove('danger');
             if (liveShield) liveShield.textContent = `${Math.round(pct * 100)}%`;
         }
-        // 更新导弹状态文字
+        /* 导弹状态 */
         const liveMissile = document.getElementById('liveMissile');
         if (liveMissile) {
             const now = performance.now();
@@ -1458,9 +1629,17 @@
             liveMissile.textContent = ready ? '●' : '○';
             liveMissile.style.color = ready ? '#ff44aa' : 'rgba(200,216,232,0.35)';
         }
-        // 更新击毁数
+        /* 击毁数（含闪烁） */
         const liveKills = document.getElementById('liveKills');
-        if (liveKills) liveKills.textContent = state.meteorsDestroyed;
+        if (liveKills) {
+            const prevK = liveKills.textContent;
+            liveKills.textContent = state.meteorsDestroyed;
+            if (String(state.meteorsDestroyed) !== prevK && state.meteorsDestroyed > 0) {
+                liveKills.classList.remove('score-flash');
+                void liveKills.offsetWidth;
+                liveKills.classList.add('score-flash');
+            }
+        }
     }
 
     function buildHUD() {
@@ -1473,16 +1652,16 @@
         hud.innerHTML = `
             <div class="hud-left">
                 <div class="hud-row">
-                    <span class="hud-label">VER</span>
-                    <span class="hud-value" id="hudVersion">3.4.1</span>
-                </div>
-                <div class="hud-row">
                     <span class="hud-label">SCORE</span>
                     <span class="hud-value" id="liveScore">0</span>
                 </div>
                 <div class="hud-row">
                     <span class="hud-label">TIME</span>
                     <span class="hud-value" id="liveTime">00:00</span>
+                </div>
+                <div class="hud-row">
+                    <span class="hud-label">FPS</span>
+                    <span class="hud-value" id="liveFPS">60</span>
                 </div>
             </div>
             <div class="hud-right">
@@ -1526,9 +1705,23 @@ meteorSpawnTimer = 0;
     function startGameLoop() {
         let accumulator = 0;
         let lastTime = performance.now();
+        let fpsFrames = [], fpsTick = 0;
         function loop(now) {
             const delta = Math.min(50, now - lastTime);
             lastTime = now;
+            fpsFrames.push(delta);
+            if (fpsFrames.length > 30) fpsFrames.shift();
+            if (++fpsTick >= 15) {
+                const avg = fpsFrames.reduce((a, b) => a + b, 0) / fpsFrames.length;
+                const fps = Math.round(1000 / avg);
+                const fpsEl = document.getElementById('liveFPS');
+                if (fpsEl) {
+                    fpsEl.textContent = String(fps);
+                    fpsEl.classList.remove('fps-good', 'fps-ok', 'fps-bad');
+                    fpsEl.classList.add(fps >= 60 ? 'fps-good' : fps >= 30 ? 'fps-ok' : 'fps-bad');
+                }
+                fpsTick = 0;
+            }
             accumulator += delta;
             while (accumulator >= CONFIG.TARGET_DT) {
                 update();
@@ -1547,8 +1740,8 @@ meteorSpawnTimer = 0;
      */
     function startGame() {
         ensureAudio();
-        // 停止开始界面装饰循环
-        if (window._stopDecor) window._stopDecor();
+        // 停止开始界面装饰循环（2D 和 3D）
+        if (window._stop3dDecor) window._stop3dDecor();
         resetEntities();
         state.current = 'running';
         state.score = 0;
@@ -1633,16 +1826,31 @@ meteorSpawnTimer = 0;
         const decorCtx = decorCanvas.getContext('2d');
 
         // 装饰用大型陨石（缓慢自转，固定在右上方展示）
+        const dr = 50;
+        const dvc = 16;
+        const dvs = [];
+        for (let i = 0; i < dvc; i++) {
+            const a = (i / dvc) * Math.PI * 2;
+            const rr = dr * (0.88 + Math.random() * 0.12);
+            dvs.push({ x: Math.cos(a) * rr, y: Math.sin(a) * rr });
+        }
+        const dcs = [];
+        for (let i = 0; i < dvc; i++) {
+            const curr = dvs[i], next = dvs[(i + 1) % dvc];
+            dcs.push({ x: (curr.x + next.x) / 2 + (Math.random() - 0.5) * dr * 0.05, y: (curr.y + next.y) / 2 + (Math.random() - 0.5) * dr * 0.05 });
+        }
+        const dcraters = [];
+        for (let i = 0; i < 8; i++) {
+            const a = Math.random() * Math.PI * 2, rd = Math.random() * dr * 0.6;
+            dcraters.push({ x: Math.cos(a) * rd, y: Math.sin(a) * rd, radius: 3 + Math.random() * dr * 0.12, alpha: 0.15 + Math.random() * 0.25 });
+        }
         const decorMeteor = {
-            x: gameWidth * 0.78,
-            y: CONFIG.DESIGN_HEIGHT * 0.30,
-            size: 2.0,
-            rotation: 0,
-            rotationSpeed: 0.004,
-            seed: 42,
-            numPoints: 14,
-            numCraters: 6,
-            baseRadius: 50
+            x: gameWidth * 0.78, y: CONFIG.DESIGN_HEIGHT * 0.30,
+            radius: dr, rotation: 0, rotationSpeed: 0.004,
+            vertices: dvs, ctrlPoints: dcs, craters: dcraters,
+            isLarge: true, hit: false, health: 2, cracks: null, speed: 0,
+            specks: [], brightSpecks: [], fineGrains: [],
+            palette: ['#9b4c26', '#4a1f13', '#1c0d08']
         };
 
         // 装饰用飞船位置（左下方展示，微微倾斜）
@@ -1710,7 +1918,6 @@ meteorSpawnTimer = 0;
     function initAllModules() {
         initCanvas();
         initBackgroundStars();
-        initDecorCanvas();
         initInput();
         mobileControls = document.getElementById('mobileControls');
         window.startGame = startGame;

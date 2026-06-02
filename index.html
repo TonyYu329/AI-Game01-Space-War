@@ -16,12 +16,24 @@
     <!-- ============================================================
          === CSS IMPORTS =======================================
          ============================================================ -->
-    <link rel="stylesheet" href="./css/ui/merged.css?v=3.4.1">
+    <link rel="stylesheet" href="./css/ui/merged.css?v=4.0.0">
+
+    <!-- ============================================================
+         === THREE.JS IMPORT MAP ==============================
+         ============================================================ -->
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.169.0/build/three.module.js"
+        }
+    }
+    </script>
 
     <!-- ============================================================
          === JAVASCRIPT IMPORTS ===============================
          ============================================================ -->
-    <script src="./js/index_cjs.js?v=3.4.1"></script>
+    <script src="./js/index_cjs.js?v=4.0.0"></script>
+    <script type="module" src="./js/index_3d.js?v=4.0.0"></script>
 </head>
 <body>
 
@@ -29,6 +41,9 @@
          === GAME CANVAS =======================================
          ============================================================ -->
     <canvas id="gameCanvas"></canvas>
+
+    <!-- 3D 渲染层（透明 WebGL Canvas，叠在 2D 画布之上） -->
+    <canvas id="canvas3d"></canvas>
     
     <!-- ============================================================
          === UI CONTAINER ======================================
@@ -43,6 +58,7 @@
             <h1 class="overlay-title">Space War</h1>
             <p class="overlay-subtitle">键盘方向键/WASD 移动 · J/左键射击 · K/右键导弹</p>
             <button class="game-button" id="startButton">开始游戏</button>
+            <p class="overlay-version">版本号 V4.0.0</p>
         </div>
 
         <!-- Game Over Overlay -->
@@ -59,13 +75,23 @@
          ============================================================ -->
     <div class="mobile-controls" id="mobileControls">
         <button class="mobile-btn bullet-btn" id="btnBullet">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <path d="M13 2L4 14h5l-2 8 10-12h-5z" fill="#ffdd44" stroke="#ffaa00" stroke-width="0.5"/>
+            <svg width="32" height="32" viewBox="0 0 192 192" fill="none">
+                <circle cx="96" cy="96" r="84" stroke="url(#bg)" stroke-width="6" opacity="0.5"/>
+                <circle cx="96" cy="96" r="66" stroke="#ffdd44" stroke-width="3" opacity="0.25" stroke-dasharray="12 8"/>
+                <circle cx="96" cy="96" r="96" fill="none" stroke="#ffee88" stroke-width="8" opacity="0.5"/>
+                <path d="M96 29 Q114 35 123 60 L123 105 L114 137 L78 137 L69 105 L69 60 Q78 35 96 29 Z" fill="#ffdd44"/>
+                <rect x="83" y="137" width="27" height="13" rx="4" fill="#ff9922" opacity="0.8"/>
+                <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffdd44"/><stop offset="1" stop-color="#ff8800"/></linearGradient></defs>
             </svg>
         </button>
         <button class="mobile-btn missile-btn" id="btnMissile">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <path d="M12 2l-5 9h3.5L9 21l9-11h-4.5L16 2z" fill="#ff6622" stroke="#ff4400" stroke-width="0.5"/>
+            <svg width="32" height="32" viewBox="0 0 192 192" fill="none">
+                <circle cx="96" cy="96" r="84" stroke="url(#mg)" stroke-width="6" opacity="0.5"/>
+                <circle cx="96" cy="96" r="66" stroke="#ff6622" stroke-width="3" opacity="0.25" stroke-dasharray="12 8"/>
+                <circle cx="96" cy="96" r="96" fill="none" stroke="#ff8844" stroke-width="8" opacity="0.5"/>
+                <path d="M96 -18 L54 66 L66 66 L63 126 L129 126 L126 66 L138 66 Z" fill="#ff6622"/>
+                <rect x="72" y="126" width="48" height="24" rx="6" fill="#ffaa00" opacity="0.9"/>
+                <defs><linearGradient id="mg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ff6622"/><stop offset="1" stop-color="#ff2200"/></linearGradient></defs>
             </svg>
         </button>
     </div>
