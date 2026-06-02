@@ -77,7 +77,7 @@
 
     const planeImage = new Image();
     let planeImageLoaded = false;
-    planeImage.src = './image/plane256.png';
+    planeImage.src = './image/plane128.png';
     planeImage.onload = function () {
         planeImageLoaded = true;
         window._planeImage = planeImage;
@@ -464,55 +464,35 @@
      * @returns {Array} 裂缝数据数组，每条裂缝包含起点、多段折线终点、颜色、线宽
      */
     function generateCrackGeometry(radius) {
-        const r = radius;
-        const cracks = [];
-        const crackCount = 3 + Math.floor(Math.random() * 3);  // 3-5 条裂缝
-        for (let ci = 0; ci < crackCount; ci++) {
-            const startA = Math.random() * Math.PI * 2;
-            const startR = r * (0.1 + Math.random() * 0.3);
-            const sx = Math.cos(startA) * startR;
-            const sy = Math.sin(startA) * startR;
-            // 生成 3-5 段折线，延伸到接近表面
-            const segments = 3 + Math.floor(Math.random() * 3);
-            const points = [];
-            let px = sx, py = sy;
-            for (let seg = 0; seg < segments; seg++) {
-                const endA = startA + (Math.random() - 0.5) * 1.5;
-                const endR = startR + ((seg + 1) / segments) * r * 0.82;
-                if (endR > r * 0.92) break;
-                px = Math.cos(endA) * endR;
-                py = Math.sin(endA) * endR;
-                points.push({ x: px, y: py });
+        var r = radius;
+        var cracks = [];
+        var count = 5;
+        for (var ci = 0; ci < count; ci++) {
+            var startA = (ci / count) * Math.PI * 2 + (Math.random() - 0.5) * 0.6;
+            var startR = r * (0.08 + Math.random() * 0.25);
+            var sx = Math.cos(startA) * startR;
+            var sy = Math.sin(startA) * startR;
+            var segments = 4 + Math.floor(Math.random() * 3);
+            var points = [];
+            for (var seg = 0; seg < segments; seg++) {
+                var endA = startA + (Math.random() - 0.5) * 1.2;
+                var endR = startR + ((seg + 1) / segments) * r * 0.88;
+                if (endR > r * 0.95) break;
+                points.push({
+                    x: Math.cos(endA) * endR,
+                    y: Math.sin(endA) * endR
+                });
             }
-            // 主裂缝颜色（黑灰色，模拟岩石真实裂痕）
-            const alpha = 0.7 + Math.random() * 0.25;
             cracks.push({
                 startX: sx, startY: sy,
                 points: points,
-                color: `rgba(${20 + Math.floor(Math.random() * 30)}, ${18 + Math.floor(Math.random() * 25)}, ${15 + Math.floor(Math.random() * 20)}, ${alpha})`,
-                shadow: `rgba(5, 3, 2, ${0.15 + Math.random() * 0.1})`,
-                lineWidth: 2 + Math.random() * 1.2
+                color: 'rgba(15,5,3,0.85)',
+                shadow: 'rgba(0,0,0,0.3)',
+                lineWidth: 3 + Math.random() * 2
             });
-            // 分支裂缝（较细较短）
-            if (Math.random() > 0.35 && points.length > 1) {
-                const bp = points[Math.floor(Math.random() * points.length)];
-                const branchA = startA + (Math.random() - 0.5) * 1.8;
-                const branchLen = r * (0.15 + Math.random() * 0.25);
-                cracks.push({
-                    startX: bp.x, startY: bp.y,
-                    points: [{
-                        x: Math.cos(branchA) * (Math.sqrt(bp.x*bp.x + bp.y*bp.y) + branchLen),
-                        y: Math.sin(branchA) * (Math.sqrt(bp.x*bp.x + bp.y*bp.y) + branchLen)
-                    }],
-                    color: `rgba(${15 + Math.floor(Math.random() * 20)}, ${12 + Math.floor(Math.random() * 15)}, ${10 + Math.floor(Math.random() * 10)}, 0.4)`,
-                    shadow: `rgba(5, 3, 2, 0.12)`,
-                    lineWidth: 1 + Math.random() * 0.5
-                });
-            }
         }
         return cracks;
     }
-
     function createMeteor() {
         // 大陨石（40%）半径 30-40，需 2 发子弹击毁，得分 +3
         // 小陨石（60%）半径 18-26，需 1 发子弹击毁，得分 +1
@@ -568,10 +548,10 @@
         }
 
         const palette = [
-            ['#9b4c26', '#4a1f13', '#1c0d08'],
-            ['#7b6a55', '#3b3029', '#171313'],
-            ['#8e3230', '#491512', '#160806'],
-            ['#b87a35', '#60401f', '#1c1208']
+            ['#c48a4a', '#6b3820', '#1a0c06'],
+            ['#8b5540', '#4a2218', '#120806'],
+            ['#7a3a2a', '#3d1510', '#0d0403'],
+            ['#a06838', '#553018', '#150c05']
         ][Math.floor(Math.random() * 4)];
         // 亮色凸起斑点（受光面岩石凸起，一次性生成避免闪烁）
         const brightSpecks = [];
@@ -607,7 +587,7 @@
             width: radius * 2,
             height: radius * 2,
             radius,
-            health: isLarge ? 2 : 1,            // 大陨石 2 点生命，小陨石 1 点
+            health: isLarge ? 4 : 1,            // 大陨石 4 点生命，小陨石 1 点
             isLarge,
             hit: false,                          // 是否已被击中过（大陨石第一次中弹后显示裂缝）
             cracks: null,                        // 裂缝几何数据（命中后生成，固定不闪烁）
@@ -1023,126 +1003,12 @@
         c.globalAlpha = 1;
 
         // ========== 第 2 层：机身图片 ==========
-        if (planeImageLoaded) {
-            // 使用预加载的 plane.png，添加辉光保持视觉深度
-            c.shadowBlur = 25;
-            c.shadowColor = '#00ccff';
-            const imgW = 56;  // 匹配碰撞宽度
-            const imgH = 56;  // 匹配机头到机尾范围
-            c.drawImage(planeImage, -imgW / 2, -imgH / 2 + 4, imgW, imgH);
-            c.shadowBlur = 0;
-        } else {
-            // === 降级方案：原始 Canvas 绘制（第2-8层） ===
+        // 使用 plane128.png
+        c.shadowBlur = 25;
+        c.shadowColor = '#00ccff';
+        c.drawImage(planeImage, -28, -22, 56, 44);
+        c.shadowBlur = 0;
 
-            // ========== 第 2 层降级：机身底色（3D 径向渐变） ==========
-            c.shadowBlur = 28;
-            c.shadowColor = '#00ccff';
-            const bodyGrad = c.createRadialGradient(-6, -10, 3, 0, 0, 48);
-            bodyGrad.addColorStop(0,   '#88eeff');   // 镜面高光
-            bodyGrad.addColorStop(0.2, '#2a9cc8');   // 受光面
-            bodyGrad.addColorStop(0.5, '#0e4f6f');   // 中间调
-            bodyGrad.addColorStop(0.8, '#082438');   // 暗面
-            bodyGrad.addColorStop(1,   '#040e18');   // 阴影
-            c.fillStyle = bodyGrad;
-
-            // 宽体钻石形机身：尖锐机头 + 展开机翼 + 双引擎短舱
-            c.beginPath();
-            c.moveTo(0, -hh - 10);                   // 机头尖点
-            c.lineTo(hw * 0.5, -hh * 0.3);           // 右侧前机身
-            c.lineTo(hw * 0.9,  hh * 0.35);           // 右翼尖
-            c.quadraticCurveTo(hw * 0.7, hh * 0.65, hw * 0.28, hh * 0.6);  // 右翼后缘
-            c.lineTo(hw * 0.22, hh);                  // 右引擎舱尾
-            c.quadraticCurveTo(0, hh * 1.08, -hw * 0.22, hh);               // 后缘中心凹陷
-            c.lineTo(-hw * 0.28, hh * 0.6);           // 左引擎舱尾
-            c.quadraticCurveTo(-hw * 0.7, hh * 0.65, -hw * 0.9, hh * 0.35); // 左翼后缘
-            c.lineTo(-hw * 0.5, -hh * 0.3);           // 左侧前机身
-            c.closePath();
-            c.fill();
-            c.shadowBlur = 0;
-
-            // ========== 第 3 层降级：边缘勾勒 ==========
-            c.strokeStyle = 'rgba(120,210,255,0.35)';
-            c.lineWidth = 1.0;
-            c.stroke();
-
-            // ========== 第 4 层降级：3D 顶部高光 ==========
-            const hlGrad = c.createRadialGradient(0, -hh * 0.25, 2, 0, -hh * 0.1, hw * 0.55);
-            hlGrad.addColorStop(0, 'rgba(200,245,255,0.30)');
-            hlGrad.addColorStop(0.4, 'rgba(130,220,255,0.12)');
-            hlGrad.addColorStop(1, 'rgba(130,220,255,0)');
-            c.fillStyle = hlGrad;
-            c.beginPath();
-            c.moveTo(0, -hh - 8);
-            c.lineTo(hw * 0.35, -hh * 0.2);
-            c.lineTo(0, hh * 0.2);
-            c.lineTo(-hw * 0.35, -hh * 0.2);
-            c.closePath();
-            c.fill();
-
-            // ========== 第 5 层降级：3D 底部阴影 ==========
-            const shGrad = c.createRadialGradient(0, hh * 0.3, 4, 0, hh * 0.1, hw * 0.65);
-            shGrad.addColorStop(0, 'rgba(0,0,0,0)');
-            shGrad.addColorStop(0.5, 'rgba(0,0,0,0.06)');
-            shGrad.addColorStop(1, 'rgba(0,0,0,0.22)');
-            c.fillStyle = shGrad;
-            c.beginPath();
-            c.ellipse(0, hh * 0.15, hw * 0.6, hh * 0.4, 0, 0, Math.PI * 2);
-            c.fill();
-
-            // ========== 第 6 层降级：装甲面板线 ==========
-            c.strokeStyle = 'rgba(100,200,255,0.10)';
-            c.lineWidth = 0.6;
-            // 机身中线
-            c.beginPath();
-            c.moveTo(0, -hh - 6);
-            c.lineTo(0, hh * 0.55);
-            c.stroke();
-            // 两侧机翼结构线
-            for (let s of [-1, 1]) {
-                c.beginPath();
-                c.moveTo(s * hw * 0.3, -hh * 0.05);
-                c.lineTo(s * hw * 0.65, hh * 0.3);
-                c.stroke();
-                c.beginPath();
-                c.moveTo(s * hw * 0.48, 0);
-                c.lineTo(s * hw * 0.82, hh * 0.25);
-                c.stroke();
-            }
-
-            // ========== 第 7 层降级：驾驶舱 ==========
-            // 座舱玻璃底色
-            c.fillStyle = 'rgba(4,16,32,0.75)';
-            c.strokeStyle = 'rgba(150,220,255,0.5)';
-            c.lineWidth = 1.0;
-            c.beginPath();
-            c.ellipse(0, -hh * 0.42, 7, 11, 0, 0, Math.PI * 2);
-            c.fill();
-            c.stroke();
-            // 座舱高光反射
-            c.fillStyle = 'rgba(180,235,255,0.22)';
-            c.beginPath();
-            c.ellipse(-2.5, -hh * 0.52, 2.5, 4.5, -0.2, 0, Math.PI * 2);
-            c.fill();
-            // 高光亮点
-            c.fillStyle = 'rgba(255,255,255,0.45)';
-            c.beginPath();
-            c.arc(-3.5, -hh * 0.58, 1.0, 0, Math.PI * 2);
-            c.fill();
-
-            // ========== 第 8 层降级：引擎进气口 ==========
-            for (let s of [-1, 1]) {
-                // 进气口暗色开孔
-                c.fillStyle = 'rgba(2,8,16,0.9)';
-                c.beginPath();
-                c.ellipse(s * 8, hh * 0.58, 4.5, 2.8, 0, 0, Math.PI * 2);
-                c.fill();
-                // 内部发光核心
-                c.fillStyle = 'rgba(0,150,255,0.18)';
-                c.beginPath();
-                c.ellipse(s * 8, hh * 0.58, 3.5, 1.8, 0, 0, Math.PI * 2);
-                c.fill();
-            }
-        }
 
         // ========== 第 9 层：引擎发光扩散 ==========
         c.shadowBlur = 22;
@@ -1188,8 +1054,8 @@
         const drawCtx = optCtx || ctx;
         drawCtx.save();
         drawCtx.translate(m.x, m.y);
+        // 陨石主体在旋转后绘制
         drawCtx.rotate(m.rotation);
-
         const r = m.radius;
         const pts = m.vertices;
         const ctrl = m.ctrlPoints;
@@ -1307,33 +1173,24 @@
         drawCtx.arc(0, 0, r, 0, Math.PI * 2);
         drawCtx.stroke();
 
-        /* 大陨石被击中后显示裂缝——使用预先存储的固定几何数据，不闪烁 */
         if (m.isLarge && m.hit && m.cracks && m.cracks.length > 0) {
             m.cracks.forEach(function(crack) {
-                // 阴影层（偏移 1.5px 增强立体感）
-                ctx.strokeStyle = crack.shadow;
-                ctx.lineWidth = crack.lineWidth * 0.7;
-                ctx.beginPath();
-                ctx.moveTo(crack.startX + 1.5, crack.startY + 1.5);
-                crack.points.forEach(function(p) {
-                    ctx.lineTo(p.x + 1.5, p.y + 1.5);
-                });
-                ctx.stroke();
-                // 主裂缝（黑灰色）
-                ctx.strokeStyle = crack.color;
-                ctx.lineWidth = crack.lineWidth;
-                ctx.shadowBlur = 0;
-                ctx.beginPath();
-                ctx.moveTo(crack.startX, crack.startY);
-                crack.points.forEach(function(p) {
-                    ctx.lineTo(p.x, p.y);
-                });
-                ctx.stroke();
-                ctx.shadowBlur = 0;
+                drawCtx.strokeStyle = crack.shadow;
+                drawCtx.lineWidth = crack.lineWidth + 1;
+                drawCtx.beginPath();
+                drawCtx.moveTo(crack.startX + 1, crack.startY + 1);
+                crack.points.forEach(function(p) { drawCtx.lineTo(p.x + 1, p.y + 1); });
+                drawCtx.stroke();
+                drawCtx.strokeStyle = crack.color;
+                drawCtx.lineWidth = crack.lineWidth;
+                drawCtx.beginPath();
+                drawCtx.moveTo(crack.startX, crack.startY);
+                crack.points.forEach(function(p) { drawCtx.lineTo(p.x, p.y); });
+                drawCtx.stroke();
             });
         }
 
-        ctx.restore();
+        drawCtx.restore();
     }
 
     function drawBullets() {
@@ -1576,7 +1433,11 @@
         renderBackground();
         drawEffects();
         if (state.current === 'running' || state.current === 'dying' || state.current === 'game_over') {
-            /* 陨石和战机已由 3D 渲染层 (index_3d.js) 绘制 */
+            // 2D 陨石（含拖尾）始终绘制 — 拖尾从 3D 球体后方延伸可见
+            meteors.forEach(function (m) { drawMeteor(m); });
+            if (state.current === 'running') {
+                drawPlane();
+            }
             drawBullets();
             drawParticles();
         }
