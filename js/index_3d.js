@@ -3,10 +3,8 @@
  * @description Three.js WebGL 透明画布，渲染 3D 战机和陨石
  *              叠在 2D 游戏画布之上，不参与游戏逻辑
  * @date 2026-06-02
- * @version 4.0.0
+ * @version 4.1.0
  */
-import * as THREE from 'three';
-
 const DESIGN_HEIGHT = 600;
 
 let renderer, scene, camera;
@@ -16,12 +14,12 @@ let meteorMeshes = [];
 let meteorMeshMap = new WeakMap();
 /* 色板匹配 yunshi.png 参考图：暖色岩体 + 暗色阴影 + 高光 */
 const meteorPalettes = [
-    { base: [0xc48a4a, 0xb86a38, 0x5a2815], highlight: 0xdd9960 },  /* 橙褐岩 */
-    { base: [0x8e3230, 0xb04a40, 0x4a1815], highlight: 0xe07050 },  /* 红褐岩 */
-    { base: [0x6b5540, 0x8a6a50, 0x3a2820], highlight: 0xcc9966 },  /* 棕灰岩 */
-    { base: [0x4a5560, 0x607080, 0x283038], highlight: 0x8899aa },  /* 青灰岩 */
-    { base: [0xb87a35, 0xd09440, 0x60401f], highlight: 0xeebb66 },  /* 金褐岩 */
-    { base: [0x503030, 0x684040, 0x301a1a], highlight: 0x996060 }   /* 暗红岩 */
+    { base: [0x9e8e7e, 0x8a7a6a, 0x5a4a3a], highlight: 0xc4b8a8 },  /* 灰褐岩 */
+    { base: [0x8a8a84, 0x6e6e68, 0x3e3e38], highlight: 0xa8a8a2 },  /* 石板灰 */
+    { base: [0x968878, 0x7a6e60, 0x4c4032], highlight: 0xb8a898 },  /* 暗沙岩 */
+    { base: [0x7e7a72, 0x5e5a52, 0x323028], highlight: 0x9e9a92 },  /* 暗灰岩 */
+    { base: [0x8c8478, 0x6c6458, 0x403830], highlight: 0xaea498 },  /* 石灰岩 */
+    { base: [0x6e6a62, 0x4a463e, 0x26221a], highlight: 0x8e8a82 }   /* 深灰岩 */
 ];
 
 /* 装饰模式（idle 状态） */
@@ -99,14 +97,14 @@ function createMeteor3D(m) {
     const s1 = Math.random() * 100, s2 = Math.random() * 100, s3 = Math.random() * 100;
 
     /* 生成随机环形山中心（球面坐标） */
-    const craterCount = 4 + Math.floor(Math.random() * 6);
+    const craterCount = 6 + Math.floor(Math.random() * 8);
     const craters = [];
     for (let c = 0; c < craterCount; c++) {
         craters.push({
             phi: Math.random() * Math.PI * 0.85 + 0.075,
             theta: Math.random() * Math.PI * 2,
-            radius: (0.08 + Math.random() * 0.18) * r,
-            depth: (0.08 + Math.random() * 0.14) * r
+            radius: (0.06 + Math.random() * 0.2) * r,
+            depth: (0.1 + Math.random() * 0.18) * r
         });
     }
 
@@ -127,7 +125,7 @@ function createMeteor3D(m) {
         }
         /* 锐化：增强峰谷对比 */
         let noise = fbm / total;
-        noise = Math.sign(noise) * Math.pow(Math.abs(noise), 1.35) * 0.16;
+        noise = Math.sign(noise) * Math.pow(Math.abs(noise), 1.35) * 0.22;
 
         /* 环形山凹陷 */
         let craterDisp = 0;
@@ -200,10 +198,12 @@ function createMeteor3D(m) {
 /* ---- 裂纹线生成（大裂纹 + 分支，模拟快要散架的岩石） ---- */
 function generateCrackLines(radius) {
     const lines = [];
-    const count = 6 + Math.floor(Math.random() * 5);
+    const count = 12 + Math.floor(Math.random() * 5);
     const r = radius;
     for (let c = 0; c < count; c++) {
-        let phi = Math.random() * Math.PI, theta = Math.random() * Math.PI * 2;
+        // 偏向屏幕正面（+Z 半球），确保正面至少 6 条可见
+        let phi = Math.random() * Math.PI * 0.85 + 0.075;
+        let theta = Math.PI * 0.3 + Math.random() * Math.PI * 1.4;
         const pts = [];
         /* 更长的主裂纹：15 段 */
         for (let s = 0; s < 15; s++) {

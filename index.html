@@ -16,24 +16,18 @@
     <!-- ============================================================
          === CSS IMPORTS =======================================
          ============================================================ -->
-    <link rel="stylesheet" href="./css/ui/merged.css?v=4.1.0">
+    <link rel="stylesheet" href="./css/ui/merged.css?v=4.2.0">
 
     <!-- ============================================================
-         === THREE.JS IMPORT MAP ==============================
+         === THREE.JS CDN =====================================
          ============================================================ -->
-    <script type="importmap">
-    {
-        "imports": {
-            "three": "https://unpkg.com/three@0.169.0/build/three.module.js"
-        }
-    }
-    </script>
+    <script src="./js/lib/three.min.js"></script>
 
     <!-- ============================================================
          === JAVASCRIPT IMPORTS ===============================
          ============================================================ -->
-    <script src="./js/index_cjs.js?v=4.1.0"></script>
-    <script type="module" src="./js/index_3d.js?v=4.1.0"></script>
+    <script src="./js/index_cjs.js?v=4.2.0"></script>
+    <script src="./js/index_3d.js?v=4.2.0"></script>
 </head>
 <body>
 
@@ -58,7 +52,7 @@
             <h1 class="overlay-title">Space War</h1>
             <p class="overlay-subtitle">键盘方向键/WASD 移动 · J/左键射击 · K/右键导弹</p>
             <button class="game-button" id="startButton">开始游戏</button>
-            <p class="overlay-version">版本号 V4.1.0</p>
+            <p class="overlay-version">版本号 V4.2.0</p>
         </div>
 
         <!-- Game Over Overlay -->
