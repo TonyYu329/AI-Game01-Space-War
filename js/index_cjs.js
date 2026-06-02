@@ -547,12 +547,17 @@
             });
         }
 
-        const palette = [
+        var paletteIdx = Math.floor(Math.random() * 8);
+        var palette = [
             ['#9e8e7e', '#5a4a3a', '#1a1210'],
+            ['#b09878', '#6a5840', '#241a10'],
+            ['#78909c', '#405060', '#182028'],
             ['#8a8a84', '#4e4e48', '#121210'],
+            ['#b08868', '#684830', '#201810'],
+            ['#7a8a7a', '#4a5a4a', '#142014'],
             ['#968878', '#544838', '#14100c'],
-            ['#847a6e', '#4c4238', '#100e0a']
-        ][Math.floor(Math.random() * 4)];
+            ['#6e7a8e', '#384458', '#181c24']
+        ][paletteIdx];
         // 亮色凸起斑点（受光面岩石凸起，一次性生成避免闪烁）
         const brightSpecks = [];
         for (let i = 0; i < 5 + Math.floor(Math.random() * 6); i++) {

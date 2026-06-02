@@ -15,11 +15,13 @@ let meteorMeshMap = new WeakMap();
 /* 色板匹配 yunshi.png 参考图：暖色岩体 + 暗色阴影 + 高光 */
 const meteorPalettes = [
     { base: [0x9e8e7e, 0x8a7a6a, 0x5a4a3a], highlight: 0xc4b8a8 },  /* 灰褐岩 */
+    { base: [0xb09878, 0x9a8860, 0x6a5840], highlight: 0xd4c4a0 },  /* 暖沙岩 */
+    { base: [0x78909c, 0x607080, 0x405060], highlight: 0x98b0c0 },  /* 青灰岩 */
     { base: [0x8a8a84, 0x6e6e68, 0x3e3e38], highlight: 0xa8a8a2 },  /* 石板灰 */
+    { base: [0xb08868, 0x987048, 0x684830], highlight: 0xccb098 },  /* 红褐岩 */
+    { base: [0x7a8a7a, 0x5a6e5a, 0x3a4a3a], highlight: 0x98b098 },  /* 灰绿岩 */
     { base: [0x968878, 0x7a6e60, 0x4c4032], highlight: 0xb8a898 },  /* 暗沙岩 */
-    { base: [0x7e7a72, 0x5e5a52, 0x323028], highlight: 0x9e9a92 },  /* 暗灰岩 */
-    { base: [0x8c8478, 0x6c6458, 0x403830], highlight: 0xaea498 },  /* 石灰岩 */
-    { base: [0x6e6a62, 0x4a463e, 0x26221a], highlight: 0x8e8a82 }   /* 深灰岩 */
+    { base: [0x6e7a8e, 0x506078, 0x384458], highlight: 0x8898b0 }   /* 蓝灰岩 */
 ];
 
 /* 装饰模式（idle 状态） */
