@@ -11,12 +11,12 @@ const DESIGN_HEIGHT = 600;
 
 let renderer, scene, camera;
 let canvas3d;
-let planeGroup;
+let planeGroup = null;  // 3D 战机已禁用（使用 2D plane128.png）
 let meteorMeshes = [];
 let meteorMeshMap = new WeakMap();
 /* 色板匹配 yunshi.png 参考图：暖色岩体 + 暗色阴影 + 高光 */
 const meteorPalettes = [
-    { base: [0x9b4c26, 0xb86a38, 0x5a2815], highlight: 0xdd9960 },  /* 橙褐岩 */
+    { base: [0xc48a4a, 0xb86a38, 0x5a2815], highlight: 0xdd9960 },  /* 橙褐岩 */
     { base: [0x8e3230, 0xb04a40, 0x4a1815], highlight: 0xe07050 },  /* 红褐岩 */
     { base: [0x6b5540, 0x8a6a50, 0x3a2820], highlight: 0xcc9966 },  /* 棕灰岩 */
     { base: [0x4a5560, 0x607080, 0x283038], highlight: 0x8899aa },  /* 青灰岩 */
@@ -31,40 +31,48 @@ let decorAnimId = null;
 let decorTimer = 0;
 
 function init() {
-    canvas3d = document.getElementById('canvas3d');
-    if (!canvas3d) {
-        canvas3d = document.createElement('canvas');
-        canvas3d.id = 'canvas3d';
-        document.body.appendChild(canvas3d);
+    window._3dReady = false;
+    try {
+        canvas3d = document.getElementById('canvas3d');
+        if (!canvas3d) {
+            canvas3d = document.createElement('canvas');
+            canvas3d.id = 'canvas3d';
+            document.body.appendChild(canvas3d);
+        }
+        canvas3d.style.cssText = 'position:fixed;top:0;left:0;pointer-events:none;z-index:1;';
+
+        renderer = new THREE.WebGLRenderer({ canvas: canvas3d, antialias: false, alpha: true });
+        renderer.setPixelRatio(1);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+
+        scene = new THREE.Scene();
+
+        const aspect = window.innerWidth / window.innerHeight;
+        const fh = DESIGN_HEIGHT;
+        const fw = fh * aspect;
+        camera = new THREE.OrthographicCamera(-fw / 2, fw / 2, fh / 2, -fh / 2, 0.1, 100);
+        camera.position.set(0, 0, 50);
+        camera.lookAt(0, 0, 0);
+
+        scene.add(new THREE.AmbientLight(0x333355, 0.5));
+        const sun = new THREE.DirectionalLight(0xffffcc, 1.0);
+        sun.position.set(4, 6, 10);
+        scene.add(sun);
+        const fill = new THREE.DirectionalLight(0x335577, 0.4);
+        fill.position.set(-3, -1, 5);
+        scene.add(fill);
+
+        // buildPlaneModel() removed — 2D only, plane128.png
+        buildDecorScene();
+        window.addEventListener('resize', onResize);
+
+        window._3dReady = true;
+        requestAnimationFrame(loop);
+    } catch (e) {
+        console.warn('[3D] 初始化失败，使用 2D 回退:', e.message);
+        window._3dReady = false;
+        if (canvas3d) canvas3d.style.display = 'none';
     }
-    canvas3d.style.cssText = 'position:fixed;top:0;left:0;pointer-events:none;z-index:1;';
-
-    renderer = new THREE.WebGLRenderer({ canvas: canvas3d, antialias: false, alpha: true });
-    renderer.setPixelRatio(1);
-    renderer.setSize(window.innerWidth, window.innerHeight);
-
-    scene = new THREE.Scene();
-
-    const aspect = window.innerWidth / window.innerHeight;
-    const fh = DESIGN_HEIGHT;
-    const fw = fh * aspect;
-    camera = new THREE.OrthographicCamera(-fw / 2, fw / 2, fh / 2, -fh / 2, 0.1, 100);
-    camera.position.set(0, 0, 50);
-    camera.lookAt(0, 0, 0);
-
-    scene.add(new THREE.AmbientLight(0x333355, 0.5));
-    const sun = new THREE.DirectionalLight(0xffffcc, 1.0);
-    sun.position.set(4, 6, 10);
-    scene.add(sun);
-    const fill = new THREE.DirectionalLight(0x335577, 0.4);
-    fill.position.set(-3, -1, 5);
-    scene.add(fill);
-
-    buildPlaneModel();
-    buildDecorScene();
-    window.addEventListener('resize', onResize);
-
-    requestAnimationFrame(loop);
 }
 
 function onResize() {
@@ -79,80 +87,6 @@ function onResize() {
     camera.updateProjectionMatrix();
 }
 
-/* ---- 3D 战机构建（plane64.png 精灵 + 引擎发光 + 导航灯） ---- */
-function buildPlaneModel() {
-    planeGroup = new THREE.Group();
-
-    /* 用 plane256.png 作为战机精灵（极致性能：2 三角形 + 单纹理） */
-    const spriteMat = new THREE.MeshBasicMaterial({
-        map: null, /* 异步加载 */
-        transparent: true,
-        side: THREE.DoubleSide,
-        depthTest: true,
-        depthWrite: false
-    });
-    /* 尺寸保持与游戏碰撞盒一致：56×44 */
-    const spriteGeo = new THREE.PlaneGeometry(56, 44);
-    const spriteMesh = new THREE.Mesh(spriteGeo, spriteMat);
-    spriteMesh.name = 'planeSprite';
-    spriteMesh.renderOrder = 1;
-    planeGroup.add(spriteMesh);
-
-    /* 引擎发光 × 2 */
-    [-8, 8].forEach((ex) => {
-        for (let l = 0; l < 3; l++) {
-            const glowGeo = new THREE.SphereGeometry(4 - l * 1.2, 8, 6);
-            const gMat = new THREE.MeshBasicMaterial({
-                color: l === 0 ? 0xffffff : l === 1 ? 0x44bbff : 0x0066cc,
-                transparent: true, opacity: 0.9 - l * 0.25
-            });
-            const glow = new THREE.Mesh(glowGeo, gMat);
-            glow.position.set(ex, -20, 0);
-            if (l === 0) glow.name = 'engineGlow';
-            planeGroup.add(glow);
-        }
-    });
-
-    /* 导航灯 */
-    const navGeo = new THREE.SphereGeometry(1.5, 6, 4);
-    const navL = new THREE.Mesh(navGeo, new THREE.MeshBasicMaterial({ color: 0xff3333 }));
-    navL.position.set(-27, 4, 0);
-    navL.name = 'navLightL';
-    planeGroup.add(navL);
-    const navR = new THREE.Mesh(navGeo, new THREE.MeshBasicMaterial({ color: 0x33ff33 }));
-    navR.position.set(27, 4, 0);
-    navR.name = 'navLightR';
-    planeGroup.add(navR);
-
-    planeGroup.visible = false;
-    scene.add(planeGroup);
-
-    /* 异步加载纹理 */
-    tryInitTexture();
-}
-
-function tryInitTexture() {
-    const img = window._planeImage;
-    if (!img || !img.complete) {
-        setTimeout(tryInitTexture, 200);
-        return;
-    }
-    const canvas = document.createElement('canvas');
-    canvas.width = img.width;
-    canvas.height = img.height;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0);
-    const tex = new THREE.CanvasTexture(canvas);
-    tex.minFilter = THREE.NearestFilter;
-    tex.magFilter = THREE.NearestFilter;
-    tex.generateMipmaps = false;
-    tex.colorSpace = THREE.SRGBColorSpace;
-    const spriteMesh = planeGroup.getObjectByName('planeSprite');
-    if (spriteMesh) {
-        spriteMesh.material.map = tex;
-        spriteMesh.material.needsUpdate = true;
-    }
-}
 
 /* ---- 3D 陨石创建 ---- */
 function createMeteor3D(m) {
@@ -248,7 +182,9 @@ function createMeteor3D(m) {
     const mat = new THREE.MeshStandardMaterial({
         vertexColors: true,
         roughness: 0.82 + Math.random() * 0.14,
-        metalness: 0.005 + Math.random() * 0.015
+        metalness: 0.005 + Math.random() * 0.015,
+        emissive: new THREE.Color(0x111111),
+        emissiveIntensity: 0.15
     });
 
     const mesh = new THREE.Mesh(geo, mat);
@@ -287,12 +223,12 @@ function generateCrackLines(radius) {
         /* 第 1 层：外层大范围发光（暗红，模拟岩石裂口热光） */
         const g1Pts = pts.map((p) => new THREE.Vector3(p.x + offX*2.2, p.y + offY*2.2, p.z + offZ*2.2));
         lines.push(new THREE.Line(new THREE.BufferGeometry().setFromPoints(g1Pts),
-            new THREE.LineBasicMaterial({ color: 0x441111, depthTest: true })));
+            new THREE.LineBasicMaterial({ color: 0x661111, depthTest: true })));
 
         /* 第 2 层：内层发光（暗橙红） */
         const g2Pts = pts.map((p) => new THREE.Vector3(p.x + offX*1.3, p.y + offY*1.3, p.z + offZ*1.3));
         lines.push(new THREE.Line(new THREE.BufferGeometry().setFromPoints(g2Pts),
-            new THREE.LineBasicMaterial({ color: 0x220a0a, depthTest: true })));
+            new THREE.LineBasicMaterial({ color: 0x330a0a, depthTest: true })));
 
         /* 第 3 层：阴影偏移 */
         const shPts = pts.map((p) => new THREE.Vector3(p.x + offX, p.y + offY, p.z + offZ));
@@ -301,7 +237,7 @@ function generateCrackLines(radius) {
 
         /* 第 4 层：主裂纹（深黑） */
         lines.push(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
-            new THREE.LineBasicMaterial({ color: 0x050000, depthTest: true })));
+            new THREE.LineBasicMaterial({ color: 0x080000, depthTest: true })));
 
         /* 50% 概率生成分支裂纹 */
         if (Math.random() > 0.5 && pts.length > 5) {
@@ -359,6 +295,15 @@ function syncMeteors(meteors) {
         mesh.rotation.y += mesh.userData.rotY;
         mesh.rotation.z += mesh.userData.rotZ;
 
+        // Update trail plane
+        if (mesh.userData.trailPlane) {
+            var tw = m.hit ? r * 3.5 : r * 1.0;
+            var tlen = m.hit ? r * 5 : r * 3;
+            mesh.userData.trailPlane.scale.set(tw / r, tlen / (r * 1.5), 1);
+            mesh.userData.trailPlane.position.set(0, tlen * 0.55, -0.1);
+            mesh.userData.trailPlane.material.opacity = m.hit ? 0.9 : 0.6;
+        }
+
         /* 击中状态发光 */
         if (m.hit && m.isLarge) {
             mesh.material.emissive = new THREE.Color(0x331100);
@@ -374,33 +319,6 @@ function syncMeteors(meteors) {
     });
 }
 
-function syncPlane(plane, state) {
-    if (state.current !== 'running') {
-        planeGroup.visible = false;
-        return;
-    }
-    planeGroup.visible = true;
-    const gw = window._gameData ? window._gameData.gameWidth : 800;
-    const cx = plane.x + plane.width / 2;
-    const cy = plane.y + plane.height / 2;
-    planeGroup.position.set(cx - gw / 2, DESIGN_HEIGHT / 2 - cy, 0.5);
-    planeGroup.rotation.z = plane.tilt;
-
-    /* 引擎发光脉动 */
-    const glowChildren = planeGroup.children.filter((c) => c.name === 'engineGlow');
-    const intensity = 0.6 + Math.sin(plane.flamePhase) * 0.3 + Math.random() * 0.1;
-    glowChildren.forEach((g) => {
-        g.material.opacity = intensity;
-        g.scale.setScalar(0.8 + Math.random() * 0.5);
-    });
-
-    /* 导航灯闪烁 */
-    const time = state.time;
-    const navL = planeGroup.children.find((c) => c.name === 'navLightL');
-    const navR = planeGroup.children.find((c) => c.name === 'navLightR');
-    if (navL) navL.material.opacity = Math.sin(time * 0.06) > 0 ? 1 : 0.15;
-    if (navR) navR.material.opacity = Math.sin(time * 0.06 + Math.PI) > 0 ? 1 : 0.15;
-}
 
 /* ---- 装饰场景（idle 状态） ---- */
 function buildDecorScene() {
@@ -417,30 +335,16 @@ function buildDecorScene() {
         pos.setXYZ(i, x + nx * d, y + ny * d, z + nz * d);
     }
     geo.computeVertexNormals();
-    decorMeteor = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0x9b4c26, roughness: 0.78, metalness: 0.05 }));
+    decorMeteor = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0xc48a4a, roughness: 0.78, metalness: 0.05 }));
     decorMeteor.position.set(180, 130, 0);
     group.add(decorMeteor);
 
-    /* 装饰用战机简化克隆 */
-    decorPlaneClone = new THREE.Group();
-    const sc = 0.65;
-    const bMat = new THREE.MeshStandardMaterial({ color: 0x336688, roughness: 0.35, metalness: 0.7 });
-    decorPlaneClone.add(new THREE.Mesh(new THREE.BoxGeometry(28 * sc, 8 * sc, 44 * sc), bMat));
-    const nose = new THREE.Mesh(new THREE.ConeGeometry(7 * sc, 18 * sc, 8, 8), bMat);
-    nose.position.y = 31 * sc;
-    decorPlaneClone.add(nose);
-    const wing = new THREE.Mesh(new THREE.BoxGeometry(56 * sc, 2 * sc, 14 * sc),
-        new THREE.MeshStandardMaterial({ color: 0x1a3344, roughness: 0.5, metalness: 0.55 }));
-    wing.position.y = -2 * sc;
-    decorPlaneClone.add(wing);
-    decorPlaneClone.position.set(-140, -30, 0);
-    decorPlaneClone.rotation.z = 0.1;
-    group.add(decorPlaneClone);
 
     scene.add(group);
 }
 
 function decorLoop() {
+    if (!window._3dReady) { decorAnimId = requestAnimationFrame(decorLoop); return; }
     const gd = window._gameData;
     if (!gd || gd.state.current !== 'idle') {
         const dg = scene.getObjectByName('decorGroup');
@@ -455,14 +359,14 @@ function decorLoop() {
         decorMeteor.rotation.y += 0.004;
         decorMeteor.rotation.x += 0.002;
     }
-    if (decorPlaneClone) {
-        decorPlaneClone.position.y = -30 + Math.sin(decorTimer * 0.015) * 10;
-    }
+    // decorPlaneClone removed — 2D only
     decorAnimId = requestAnimationFrame(decorLoop);
 }
 
 /* ---- 主循环 ---- */
 function loop() {
+    if (!window._3dReady) return;
+
     requestAnimationFrame(loop);
 
     const gd = window._gameData;
@@ -480,7 +384,7 @@ function loop() {
     canvas3d.style.zIndex = '1'; /* 运行时在 gameCanvas 上方 */
 
     syncMeteors(gd.meteors || []);
-    syncPlane(gd.plane, gd.state);
+    // syncPlane removed — 2D only
     renderer.render(scene, camera);
 }
 
