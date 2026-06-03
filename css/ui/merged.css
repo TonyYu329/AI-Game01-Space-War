@@ -68,22 +68,6 @@ body {
     -moz-osx-font-smoothing: grayscale;
 }
 
-/* 扫描线覆盖 */
-body::after {
-    content: '';
-    position: fixed;
-    top: 0; left: 0; right: 0; bottom: 0;
-    pointer-events: none;
-    z-index: 9999;
-    background: repeating-linear-gradient(
-        0deg,
-        transparent 0px,
-        transparent 2px,
-        rgba(0, 0, 0, 0.06) 2px,
-        rgba(0, 0, 0, 0.06) 4px
-    );
-    animation: scanline 10s linear infinite;
-}
 
 canvas {
     display: block;
@@ -495,17 +479,17 @@ canvas {
 .mobile-controls {
     display: none;
     position: fixed;
-    bottom: clamp(10px, 3vh, 24px);
+    bottom: clamp(20px, 6vh, 48px);
     left: 50%;
     transform: translateX(-50%);
-    gap: clamp(70px, 14vw, 96px);
+    gap: clamp(140px, 28vw, 192px);
     z-index: 200;
     pointer-events: none;
 }
 
 .mobile-btn {
-    width: clamp(38px, 7vw, 46px);
-    height: clamp(38px, 7vw, 46px);
+    width: clamp(76px, 14vw, 92px);
+    height: clamp(76px, 14vw, 92px);
     border-radius: 50%;
     border: 1px solid rgba(79, 255, 255, 0.35);
     background: transparent;
@@ -526,7 +510,7 @@ canvas {
     box-shadow: 0 0 24px rgba(79, 255, 255, 0.08), inset 0 0 30px rgba(79, 255, 255, 0.02);
     overflow: hidden;
 }
-.mobile-btn svg { width: 32px; height: 32px; }
+.mobile-btn svg { width: 64px; height: 64px; }
 
 /* 主动发光光晕 */
 .mobile-btn::before {
@@ -718,26 +702,26 @@ canvas {
     }
 
     .mobile-controls {
-        bottom: 8px;
-        gap: 64px;
+        bottom: 16px;
+        gap: 128px;
     }
 
     .mobile-btn {
-        width: 32px;
-        height: 32px;
+        width: 64px;
+        height: 64px;
     }
 
     .mobile-btn svg {
-        width: 18px;
-        height: 18px;
+        width: 36px;
+        height: 36px;
     }
 }
 
 /* 中等屏幕（平板） */
 @media (max-width: 800px) and (min-width: 481px) {
     .mobile-btn {
-        width: 39px;
-        height: 39px;
+        width: 78px;
+        height: 78px;
     }
 }
 

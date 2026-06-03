@@ -2,7 +2,7 @@
  * @file index_cjs.js — 太空战机游戏主引擎
  * @description 使用 Canvas 2D + Web Audio API 实现的太空射击游戏
  * @date 2026-04-29
- * @version 3.0.0
+ * @version 4.3.0
  *
  * 核心功能：
  * - 飞船鼠标/触屏控制，自动射击系统
@@ -364,10 +364,6 @@
         /* ---- 键盘控制 ---- */
         document.addEventListener('keydown', (e) => {
             keys[e.code] = true;
-            if (state.current !== 'running') return;
-            // J 键发射子弹，K 键发射导弹
-            if (e.code === 'KeyJ') shoot('machinegun', { single: true });
-            if (e.code === 'KeyK') shoot('cannon');
         });
 
         /* 键盘释放时清除按键状态 */
@@ -486,8 +482,8 @@
             cracks.push({
                 startX: sx, startY: sy,
                 points: points,
-                color: 'rgba(15,5,3,0.85)',
-                shadow: 'rgba(0,0,0,0.3)',
+                color: 'rgba(255,80,20,0.65)',
+                shadow: 'rgba(60,20,10,0.35)',
                 lineWidth: 3 + Math.random() * 2
             });
         }
@@ -498,69 +494,80 @@
         // 小陨石（60%）半径 18-26，需 1 发子弹击毁，得分 +1
         const isLarge = Math.random() < 0.4;
         const radius = isLarge ? (30 + Math.random() * 12) : (18 + Math.random() * 8);
-        // 不规则岩石形状：20-30 个顶点，更大的半径变化
-        const vertexCount = 20 + Math.floor(Math.random() * 11);
+        // 多面凹陷形状：顶点少且平直产生多面感，半径更聚焦凹陷
+        const vertexCount = 18 + Math.floor(Math.random() * 11);  // 18-28 个面
         const vertices = [];
         for (let i = 0; i < vertexCount; i++) {
             const a = (i / vertexCount) * Math.PI * 2;
-            // 0.65~1.0 半径变化，产生崎岖岩石感
-            const r = radius * (0.65 + Math.random() * 0.35);
-            vertices.push({ x: Math.cos(a) * r, y: Math.sin(a) * r });
+            // 0.55~0.92 半径变化，产生凹陷面效果，无尖刺
+            const vr = radius * (0.55 + Math.random() * 0.37);
+            vertices.push({ x: Math.cos(a) * vr, y: Math.sin(a) * vr });
         }
 
-        // 贝塞尔控制点：更大偏移（±18%），曲线更不规则
+        // 贝塞尔控制点：小偏移（±12%），更接近直线产生多面感
         const ctrlPoints = [];
         for (let i = 0; i < vertexCount; i++) {
             const curr = vertices[i];
             const next = vertices[(i + 1) % vertexCount];
             ctrlPoints.push({
-                x: (curr.x + next.x) / 2 + (Math.random() - 0.5) * radius * 0.18,
-                y: (curr.y + next.y) / 2 + (Math.random() - 0.5) * radius * 0.18
+                x: (curr.x + next.x) / 2 + (Math.random() - 0.5) * radius * 0.12,
+                y: (curr.y + next.y) / 2 + (Math.random() - 0.5) * radius * 0.12
             });
         }
 
-        // 陨石坑 —— 更多更不均匀
+        // 陨石坑 —— 更深更多更不均匀
         const craters = [];
-        const craterCount = 5 + Math.floor(radius / 6);
+        const craterCount = 6 + Math.floor(radius / 4);
         for (let i = 0; i < craterCount; i++) {
             const a = Math.random() * Math.PI * 2;
             const r = Math.random() * radius * 0.6;
             craters.push({
                 x: Math.cos(a) * r,
                 y: Math.sin(a) * r,
-                radius: 3 + Math.random() * radius * 0.15,
-                alpha: 0.18 + Math.random() * 0.28
+                radius: 2 + Math.random() * radius * 0.22,
+                alpha: 0.15 + Math.random() * 0.35
             });
         }
 
         // 表面微纹理斑点（增加数量使岩石凹凸感更强）
         const specks = [];
-        const speckCount = 8 + Math.floor(Math.random() * 8);
+        const speckCount = 12 + Math.floor(Math.random() * 13);  // 12-24
         for (let i = 0; i < speckCount; i++) {
             const a = Math.random() * Math.PI * 2;
             const d2 = Math.random() * radius * 0.8;
             specks.push({
                 x: Math.cos(a) * d2,
                 y: Math.sin(a) * d2,
-                size: 3 + Math.random() * 8,
-                alpha: 0.1 + Math.random() * 0.18
+                size: 2 + Math.random() * 12,
+                alpha: 0.12 + Math.random() * 0.22
             });
         }
 
-        var paletteIdx = Math.floor(Math.random() * 8);
+        var paletteIdx = Math.floor(Math.random() * 18);
+        // 18 色调色板：覆盖极宽颜色范围，每颗陨石明显不同
         var palette = [
-            ['#9e8e7e', '#5a4a3a', '#1a1210'],
-            ['#b09878', '#6a5840', '#241a10'],
-            ['#78909c', '#405060', '#182028'],
-            ['#8a8a84', '#4e4e48', '#121210'],
-            ['#b08868', '#684830', '#201810'],
-            ['#7a8a7a', '#4a5a4a', '#142014'],
-            ['#968878', '#544838', '#14100c'],
-            ['#6e7a8e', '#384458', '#181c24']
+            ['#7a5a3a','#3a2216','#0c0808','#ff6622'],  // 暖棕岩
+            ['#5a4a4a','#282018','#080808','#ff8844'],  // 暗灰岩
+            ['#8a4830','#402018','#0e0808','#ff5518'],  // 铁锈红
+            ['#9a7a40','#483818','#0a0804','#ffcc44'],  // 金黄岩
+            ['#4a443a','#201a16','#060606','#ff7730'],  // 黑曜岩
+            ['#786050','#382a1e','#0c0a08','#ff9940'],  // 暖灰岩
+            ['#4a5a6a','#1a222e','#080a0e','#44aaff'],  // 蓝钢岩
+            ['#5a5a3a','#28281a','#080806','#88cc44'],  // 橄榄绿
+            ['#6a4a6a','#2e1a2e','#0a080a','#cc66ff'],  // 紫灰岩
+            ['#3a6a5a','#1a3028','#060e0a','#44ffaa'],  // 铜绿岩
+            ['#8a7a5a','#4a3828','#0e0a06','#ffcc66'],  // 沙色岩
+            ['#6a3a2a','#3a1a10','#0a0402','#ff8844'],  // 巧克力
+            ['#6a6a6a','#2a2a2a','#0a0a0a','#88bbff'],  // 银灰岩
+            ['#8a2a2a','#4a1010','#0e0000','#ff4444'],  // 绯红岩
+            ['#8a5a20','#4a2a08','#0e0600','#ff8800'],  // 焦橙岩
+            ['#2a5a5a','#122a2a','#040808','#44ffff'],  // 暗青岩
+            ['#3a3a3a','#1a1a1a','#040404','#ffaa55'],  // 炭黑岩
+            ['#7a6a4a','#3a2e1a','#0a0806','#ffcc44']   // 青铜岩
         ][paletteIdx];
-        // 亮色凸起斑点（受光面岩石凸起，一次性生成避免闪烁）
+        // 亮色凸起斑点（金属反光感，一次性生成避免闪烁）
         const brightSpecks = [];
-        for (let i = 0; i < 5 + Math.floor(Math.random() * 6); i++) {
+        for (let i = 0; i < 6 + Math.floor(Math.random() * 9); i++) {  // 6-14
             const a = Math.random() * Math.PI * 2;
             const d = Math.random() * radius * 0.8;
             brightSpecks.push({
@@ -568,23 +575,80 @@
                 y: Math.sin(a) * d,
                 size: 2 + Math.random() * 5,
                 elong: 1 + Math.random() * 2,
-                alpha: 0.04 + Math.random() * 0.06
+                alpha: 0.05 + Math.random() * 0.08
             });
         }
         // 细小颗粒（粗糙质感，一次性生成避免闪烁）
         const fineGrains = [];
-        const grainCount = 20 + Math.floor(radius * 1.5);
+        const grainCount = 30 + Math.floor(radius * 2.5);
         for (let i = 0; i < grainCount; i++) {
             const a = Math.random() * Math.PI * 2;
             const d = Math.random() * radius * 0.9;
             fineGrains.push({
                 x: Math.cos(a) * d,
                 y: Math.sin(a) * d,
-                shade: Math.random() > 0.5 ? 10 : 35,
-                size: 0.5 + Math.random() * 1.2,
-                alpha: 0.15 + Math.random() * 0.2
+                shade: Math.random() > 0.5 ? 8 : 42,
+                size: 0.3 + Math.random() * 1.5,
+                alpha: 0.18 + Math.random() * 0.25
             });
         }
+
+        // ---- 内部熔岩空腔（大陨石80%概率可见，小陨石30%） ----
+        const hasLavaCavity = isLarge ? (Math.random() < 0.8) : (Math.random() < 0.30);
+        const lavaCavities = [];
+        if (hasLavaCavity) {
+            const cavityCount = 1 + Math.floor(Math.random() * 3);  // 1-3 个空腔
+            for (let ci = 0; ci < cavityCount; ci++) {
+                lavaCavities.push({
+                    x: (Math.random() - 0.5) * radius * 0.7,   // 偏离中心
+                    y: (Math.random() - 0.5) * radius * 0.7,
+                    rx: radius * (0.15 + Math.random() * 0.2),  // 椭圆半长轴
+                    ry: radius * (0.10 + Math.random() * 0.15), // 椭圆半短轴
+                    rot: Math.random() * Math.PI,
+                    glowAlpha: 0.5 + Math.random() * 0.4
+                });
+            }
+        }
+
+        // ---- 矿物裂纹透光线（4-8条） ----
+        const glowCrackCount = 4 + Math.floor(Math.random() * 5);
+        const glowCracks = [];
+        for (let gci = 0; gci < glowCrackCount; gci++) {
+            const startA = Math.random() * Math.PI * 2;
+            const startR = radius * (0.05 + Math.random() * 0.25);
+            const segCount = 3 + Math.floor(Math.random() * 4);
+            const points = [];
+            for (let s = 0; s < segCount; s++) {
+                const a = startA + (Math.random() - 0.5) * 1.2;
+                const r = startR + s * radius * 0.18;
+                points.push({ x: Math.cos(a) * Math.min(r, radius * 0.85), y: Math.sin(a) * Math.min(r, radius * 0.85) });
+            }
+            glowCracks.push({
+                points: points,
+                alpha: 0.2 + Math.random() * 0.4,
+                lineWidth: 0.8 + Math.random() * 1.5
+            });
+        }
+
+        // ---- 漂浮尘埃颗粒（8-15颗） ----
+        const dustCount = 8 + Math.floor(Math.random() * 8);
+        const dustParticles = [];
+        for (let dp = 0; dp < dustCount; dp++) {
+            dustParticles.push({
+                angle: Math.random() * Math.PI * 2,
+                dist: radius * (0.6 + Math.random() * 1.2),
+                size: 0.3 + Math.random() * 0.8,
+                alpha: 0.2 + Math.random() * 0.4,
+                driftSpeed: 0.002 + Math.random() * 0.008,
+                driftAmp: 0.3 + Math.random() * 1.0
+            });
+        }
+
+        // 将辉光色（#rrggbb）转为 RGB 数值供粒子系统使用
+        const glowHex = palette[3];
+        const trailRGB = parseInt(glowHex.slice(1,3),16) + ',' +
+                         parseInt(glowHex.slice(3,5),16) + ',' +
+                         parseInt(glowHex.slice(5,7),16);
 
         meteors.push({
             x: radius + Math.random() * (gameWidth - radius * 2),
@@ -598,6 +662,10 @@
             cracks: null,                        // 裂缝几何数据（命中后生成，固定不闪烁）
             brightSpecks,                        // 亮色凸起（一次性生成）
             fineGrains,                          // 细小颗粒（一次性生成）
+            lavaCavities,                        // 内部熔岩空腔
+            glowCracks,                          // 矿物发光线裂纹
+            dustParticles,                       // 漂浮尘埃
+            trailRGB,                            // 辉光色 RGB 字符串（粒子拖尾用）
             speed: 1.7 + Math.random() * 2.6 + Math.min(2.2, state.score * 0.025),
             rotation: Math.random() * Math.PI * 2,
             rotationSpeed: (Math.random() - 0.5) * 0.035,
@@ -787,17 +855,19 @@
         plane.x = Math.max(0, Math.min(gameWidth - plane.width, plane.x));
         plane.y = Math.max(0, Math.min(CONFIG.DESIGN_HEIGHT - plane.height, plane.y));
 
-        /* 按住鼠标时连续射击（cooldown 由 shoot 内部控制） */
+        /* 按住鼠标/键盘时连续射击（cooldown 由 shoot 内部控制） */
         if (mouseBtns.left)  shoot('machinegun');
         if (mouseBtns.right) shoot('cannon');
+        if (keys['KeyJ'])    shoot('machinegun');
+        if (keys['KeyK'])    shoot('cannon');
 
         bullets.forEach((b) => {
             b.trail.push({ x: b.x, y: b.y });
             if (b.trail.length > (b.type === 'cannon' ? 10 : 7)) b.trail.shift();
             b.y -= b.speed;
             b.rotation += b.type === 'cannon' ? 0.08 : 0.18;
-            /* 弹道追踪粒子（每 5 帧产生 1 个） */
-            if (state.time % 5 === 0 && particles.length < CONFIG.MAX_PARTICLES - 5) {
+            /* 弹道追踪粒子（每 8 帧产生 1 个） */
+            if (state.time % 8 === 0 && particles.length < CONFIG.MAX_PARTICLES - 5) {
                 const isMissile = b.type === 'cannon';
                 particles.push({
                     x: b.x + (Math.random() - 0.5) * b.width,
@@ -818,19 +888,32 @@
             m.y += m.speed;
             m.rotation += m.rotationSpeed;
             m.rotationSpeed *= 0.998;
-            /* 连续粒子拖尾：每帧 2 个粒子，形成密集彗尾 */
-            if (particles.length < CONFIG.MAX_PARTICLES - 2) {
-                for (let t = 0; t < 2; t++) {
-                    const behind = 0.3 + t * 0.55;
+            /* 粒子拖尾：每帧 1 个辉光粒子 + 每 2 帧 1 个烟尘粒子 */
+            if (particles.length < CONFIG.MAX_PARTICLES - 4) {
+                // 辉光拖尾粒子（使用陨石自身辉光色，短寿命，亮眼）
+                const behind = 0.6 + Math.random() * 0.4;
+                particles.push({
+                    x: m.x + (Math.random() - 0.5) * m.radius * 0.5,
+                    y: m.y - m.radius * behind + (Math.random() - 0.5) * m.radius * 0.2,
+                    vx: (Math.random() - 0.5) * 0.3,
+                    vy: (Math.random() - 0.5) * 0.3 - 0.3,
+                    size: 1.5 + Math.random() * 3,
+                    color: m.trailRGB,
+                    life: 10 + Math.random() * 12,
+                    maxLife: 22,
+                    type: 'trail'
+                });
+                // 每 2 帧 1 个烟尘粒子（淡色，长寿命，增加拖尾层次感）
+                if (state.time % 2 === 0) {
                     particles.push({
-                        x: m.x + (Math.random() - 0.5) * m.radius * (0.3 + t * 0.3),
-                        y: m.y - m.radius * behind + (Math.random() - 0.5) * m.radius * 0.15,
-                        vx: (Math.random() - 0.5) * 0.25,
-                        vy: (Math.random() - 0.5) * 0.25 - 0.5,
-                        size: t === 0 ? (1.5 + Math.random() * 3) : (3 + Math.random() * 6),
-                        color: t === 0 ? '200,160,110' : '120,95,65',
-                        life: t === 0 ? (15 + Math.random() * 20) : (30 + Math.random() * 40),
-                        maxLife: t === 0 ? 38 : 70,
+                        x: m.x + (Math.random() - 0.5) * m.radius * 0.4,
+                        y: m.y - m.radius * (0.5 + Math.random() * 0.4),
+                        vx: (Math.random() - 0.5) * 0.2,
+                        vy: (Math.random() - 0.5) * 0.2 - 0.4,
+                        size: 2.5 + Math.random() * 4,
+                        color: '160,120,80',
+                        life: 18 + Math.random() * 20,
+                        maxLife: 38,
                         type: 'smoke'
                     });
                 }
@@ -1059,9 +1142,23 @@
         const drawCtx = optCtx || ctx;
         drawCtx.save();
         drawCtx.translate(m.x, m.y);
+        const r = m.radius;
+
+        // ---- 漂浮尘埃颗粒（在屏幕空间绘制，让陨石主体遮挡） ----
+        if (m.dustParticles && m.dustParticles.length > 0) {
+            m.dustParticles.forEach(function(dp) {
+                dp.angle += dp.driftSpeed;
+                const dx = Math.cos(dp.angle) * dp.dist + Math.sin(dp.angle * 3) * dp.driftAmp;
+                const dy = Math.sin(dp.angle) * dp.dist + Math.cos(dp.angle * 2.7) * dp.driftAmp;
+                drawCtx.fillStyle = 'rgba(180,150,120,' + dp.alpha + ')';
+                drawCtx.beginPath();
+                drawCtx.arc(dx, dy, dp.size, 0, Math.PI * 2);
+                drawCtx.fill();
+            });
+        }
+
         // 陨石主体在旋转后绘制
         drawCtx.rotate(m.rotation);
-        const r = m.radius;
         const pts = m.vertices;
         const ctrl = m.ctrlPoints;
 
@@ -1082,11 +1179,61 @@
         grad.addColorStop(0.5, m.palette[1]);        // 中间调
         grad.addColorStop(0.82, m.palette[2]);       // 暗面过渡
         grad.addColorStop(1,   m.palette[2]);        // 阴影面
-        drawCtx.shadowBlur = 8;
-        drawCtx.shadowColor = 'rgba(255,96,32,0.18)';
+        drawCtx.shadowBlur = 10;
+        drawCtx.shadowColor = 'rgba(255,80,20,0.28)';
         drawCtx.fillStyle = grad;
         drawCtx.fill();
         drawCtx.shadowBlur = 0;
+
+        // ---- 第 3 层：内部熔岩空腔发光（中空小行星内部透出暖光） ----
+        if (m.lavaCavities && m.lavaCavities.length > 0) {
+            m.lavaCavities.forEach(function(lc) {
+                const lg = drawCtx.createRadialGradient(lc.x, lc.y, 0, lc.x, lc.y, Math.max(lc.rx, lc.ry));
+                lg.addColorStop(0, 'rgba(255,180,60,' + lc.glowAlpha + ')');
+                lg.addColorStop(0.3, 'rgba(255,100,20,' + (lc.glowAlpha * 0.7) + ')');
+                lg.addColorStop(0.6, 'rgba(200,50,10,' + (lc.glowAlpha * 0.3) + ')');
+                lg.addColorStop(1, 'rgba(80,15,5,0)');
+                drawCtx.fillStyle = lg;
+                drawCtx.beginPath();
+                drawCtx.ellipse(lc.x, lc.y, lc.rx, lc.ry, lc.rot, 0, Math.PI * 2);
+                drawCtx.fill();
+
+                // 熔岩核心亮点
+                const coreGrad = drawCtx.createRadialGradient(lc.x, lc.y, 0, lc.x, lc.y, lc.rx * 0.4);
+                coreGrad.addColorStop(0, 'rgba(255,240,180,' + (lc.glowAlpha * 0.8) + ')');
+                coreGrad.addColorStop(1, 'rgba(255,140,40,0)');
+                drawCtx.fillStyle = coreGrad;
+                drawCtx.fill();
+            });
+        }
+
+        // ---- 第 3b 层：矿物裂纹透光线 ----
+        if (m.glowCracks && m.glowCracks.length > 0) {
+            m.glowCracks.forEach(function(gc) {
+                if (gc.points.length < 2) return;
+                // 裂纹外发光
+                drawCtx.strokeStyle = m.palette[3];  // 熔岩辉光色
+                drawCtx.globalAlpha = gc.alpha * 0.5;
+                drawCtx.lineWidth = gc.lineWidth + 3;
+                drawCtx.beginPath();
+                drawCtx.moveTo(gc.points[0].x, gc.points[0].y);
+                for (let pi = 1; pi < gc.points.length; pi++) {
+                    drawCtx.lineTo(gc.points[pi].x, gc.points[pi].y);
+                }
+                drawCtx.stroke();
+                // 裂纹主线
+                drawCtx.globalAlpha = gc.alpha;
+                drawCtx.lineWidth = gc.lineWidth;
+                drawCtx.strokeStyle = '#ffcc66';
+                drawCtx.beginPath();
+                drawCtx.moveTo(gc.points[0].x, gc.points[0].y);
+                for (let pi = 1; pi < gc.points.length; pi++) {
+                    drawCtx.lineTo(gc.points[pi].x, gc.points[pi].y);
+                }
+                drawCtx.stroke();
+                drawCtx.globalAlpha = 1;
+            });
+        }
 
         // ---- 第 4 层：陨石坑（透视椭圆模拟球面曲率） ----
         m.craters.forEach((c) => {
@@ -1097,20 +1244,20 @@
             const angle = Math.atan2(c.y, c.x);
 
             // 4a. 陨石坑暗色凹陷（透视椭圆）
-            drawCtx.fillStyle = `rgba(10,5,3,${c.alpha + 0.12})`;
+            drawCtx.fillStyle = `rgba(5,3,2,${c.alpha + 0.12})`;
             drawCtx.beginPath();
             drawCtx.ellipse(c.x, c.y, cr * 1.1, cr * 1.1 * flatten, 0, 0, Math.PI * 2);
             drawCtx.fill();
 
             // 4b. 陨石坑内侧亮弧（受光侧）
             drawCtx.beginPath();
-            drawCtx.ellipse(c.x - cr * 0.08, c.y - cr * 0.08, cr * 1.0, cr * 1.0 * flatten, angle, 0, Math.PI * 2);
-            drawCtx.strokeStyle = `rgba(255,210,165,${c.alpha * 0.4})`;
+            drawCtx.ellipse(c.x - cr * 0.12, c.y - cr * 0.12, cr * 1.0, cr * 1.0 * flatten, angle, 0, Math.PI * 2);
+            drawCtx.strokeStyle = `rgba(255,180,120,${c.alpha * 0.4})`;
             drawCtx.lineWidth = 0.8;
             drawCtx.stroke();
 
             // 4c. 陨石坑底部暗点（最深的部分）
-            drawCtx.fillStyle = `rgba(8,4,2,${c.alpha + 0.2})`;
+            drawCtx.fillStyle = `rgba(5,3,2,${c.alpha + 0.2})`;
             drawCtx.beginPath();
             drawCtx.ellipse(c.x + cr * 0.05, c.y + cr * 0.05, cr * 0.5, cr * 0.5 * flatten, 0, 0, Math.PI * 2);
             drawCtx.fill();
@@ -1129,7 +1276,7 @@
         // 5b. 亮色凸起（受光面的岩石凸起，一次性生成不闪烁）
         if (m.brightSpecks) {
             m.brightSpecks.forEach((sp) => {
-                drawCtx.fillStyle = `rgba(180,160,120,${sp.alpha})`;
+                drawCtx.fillStyle = `rgba(200,180,150,${sp.alpha})`;
                 drawCtx.beginPath();
                 drawCtx.ellipse(sp.x, sp.y, sp.size, sp.elong, sp.x * 0.05, 0, Math.PI * 2);
                 drawCtx.fill();
@@ -1145,17 +1292,17 @@
             });
         }
 
-        // ---- 第 6 层：极微弱高光（无光泽球体只需轻微光照提示） ----
+        // ---- 第 6 层：金属质感高光（更集中尖锐的金属反光） ----
         const specSoft = drawCtx.createRadialGradient(
             -r * 0.12, -r * 0.16, 0,
-            -r * 0.12, -r * 0.16, r * 0.3
+            -r * 0.12, -r * 0.16, r * 0.25
         );
-        specSoft.addColorStop(0, 'rgba(255,245,230,0.18)');
-        specSoft.addColorStop(0.4, 'rgba(255,240,220,0.08)');
-        specSoft.addColorStop(1, 'rgba(255,240,220,0)');
+        specSoft.addColorStop(0, 'rgba(255,200,150,0.22)');
+        specSoft.addColorStop(0.4, 'rgba(255,180,130,0.08)');
+        specSoft.addColorStop(1, 'rgba(255,180,130,0)');
         drawCtx.fillStyle = specSoft;
         drawCtx.beginPath();
-        drawCtx.arc(-r * 0.12, -r * 0.16, r * 0.3, 0, Math.PI * 2);
+        drawCtx.arc(-r * 0.12, -r * 0.16, r * 0.25, 0, Math.PI * 2);
         drawCtx.fill();
 
         // ---- 第 7 层：底部阴影弧（增强球体立体感） ----
@@ -1171,23 +1318,40 @@
         drawCtx.arc(0, 0, r * 1.02, 0, Math.PI * 2);
         drawCtx.fill();
 
-        // ---- 第 8 层：边缘半透明轮廓线（让球体从背景中突出） ----
-        drawCtx.strokeStyle = `hsla(40, 15%, 60%, 0.08)`;
-        drawCtx.lineWidth = 1.0;
+        // ---- 第 8 层：边缘轮廓线（深色轮廓增强立体感） ----
+        drawCtx.strokeStyle = `hsla(30, 20%, 35%, 0.18)`;
+        drawCtx.lineWidth = 1.2;
         drawCtx.beginPath();
         drawCtx.arc(0, 0, r, 0, Math.PI * 2);
         drawCtx.stroke();
 
+        // ---- 击中裂纹：带熔岩发光效果 ----
         if (m.isLarge && m.hit && m.cracks && m.cracks.length > 0) {
             m.cracks.forEach(function(crack) {
+                // 外发光层（熔岩暖光）
+                drawCtx.strokeStyle = 'rgba(255,80,20,0.25)';
+                drawCtx.lineWidth = crack.lineWidth + 4;
+                drawCtx.beginPath();
+                drawCtx.moveTo(crack.startX, crack.startY);
+                crack.points.forEach(function(p) { drawCtx.lineTo(p.x, p.y); });
+                drawCtx.stroke();
+                // 阴影层
                 drawCtx.strokeStyle = crack.shadow;
                 drawCtx.lineWidth = crack.lineWidth + 1;
                 drawCtx.beginPath();
                 drawCtx.moveTo(crack.startX + 1, crack.startY + 1);
                 crack.points.forEach(function(p) { drawCtx.lineTo(p.x + 1, p.y + 1); });
                 drawCtx.stroke();
+                // 主裂纹层（发光橙）
                 drawCtx.strokeStyle = crack.color;
                 drawCtx.lineWidth = crack.lineWidth;
+                drawCtx.beginPath();
+                drawCtx.moveTo(crack.startX, crack.startY);
+                crack.points.forEach(function(p) { drawCtx.lineTo(p.x, p.y); });
+                drawCtx.stroke();
+                // 核心亮线
+                drawCtx.strokeStyle = 'rgba(255,200,80,0.7)';
+                drawCtx.lineWidth = Math.max(0.5, crack.lineWidth * 0.4);
                 drawCtx.beginPath();
                 drawCtx.moveTo(crack.startX, crack.startY);
                 crack.points.forEach(function(p) { drawCtx.lineTo(p.x, p.y); });
@@ -1210,26 +1374,16 @@
                     const a = (i + 1) / b.trail.length;  // 0~1，旧→新
                     const invA = 1 - a;                    // 1~0，旧→新
                     const r = hw * (0.5 + invA * 1.8);     // 烟圈半径：越旧越大
-                    // 烟尘颜色：由橙红渐变到灰白
-                    const hue = 30 + invA * 20;
-                    const sat = 80 - invA * 40;
-                    const lit = 50 + invA * 30;
-                    ctx.save();
-                    ctx.globalAlpha = Math.max(0, a * 0.35);
-                    ctx.shadowBlur = 15;
-                    ctx.shadowColor = `hsl(25, 90%, 50%)`;
-                    // 外层大光圈
-                    ctx.fillStyle = `hsla(${hue}, ${sat}%, ${lit}%, ${a * 0.2})`;
+                    const alpha = Math.max(0, a * 0.35);
+                    ctx.globalAlpha = alpha;
+                    ctx.fillStyle = `hsla(${30 + invA * 20}, ${80 - invA * 40}%, ${50 + invA * 30}%, ${a * 0.2})`;
                     ctx.beginPath();
                     ctx.arc(t.x, t.y - 6, r, 0, Math.PI * 2);
                     ctx.fill();
-                    // 内层亮核
-                    ctx.shadowBlur = 0;
                     ctx.fillStyle = `hsla(30, 100%, 60%, ${a * 0.1})`;
                     ctx.beginPath();
                     ctx.arc(t.x, t.y - 6, r * 0.4, 0, Math.PI * 2);
                     ctx.fill();
-                    ctx.restore();
                 });
 
                 ctx.save();
@@ -1272,40 +1426,27 @@
                 ctx.fillStyle = bodyGrad;
                 ctx.fill();
 
-                /* 导弹 3 层尾焰 */
+                /* 导弹 2 层尾焰 */
                 ctx.shadowBlur = 0;
                 const fl = 7 + Math.sin(state.time * 0.4) * 4 + Math.random() * 3;
-                for (let l = 0; l < 3; l++) {
-                    const sf = 1 - l * 0.3;
-                    const fg = ctx.createLinearGradient(0, hh - 2, 0, hh + fl * sf);
-                    if (l === 0) {
-                        fg.addColorStop(0, '#ffffff');
-                        fg.addColorStop(0.3, '#88ccff');
-                        fg.addColorStop(1, 'rgba(0,150,255,0)');
-                        ctx.fillStyle = fg;
-                        ctx.beginPath();
-                        ctx.moveTo(-hw * 0.12, hh - 2);
-                        ctx.quadraticCurveTo(0, hh + fl * sf, hw * 0.12, hh - 2);
-                        ctx.closePath(); ctx.fill();
-                    } else if (l === 1) {
-                        fg.addColorStop(0, 'rgba(255,220,90,0.9)');
-                        fg.addColorStop(0.5, 'rgba(255,100,20,0.5)');
-                        fg.addColorStop(1, 'rgba(255,50,0,0)');
-                        ctx.fillStyle = fg;
-                        ctx.beginPath();
-                        ctx.moveTo(-hw * 0.22, hh - 2);
-                        ctx.quadraticCurveTo((Math.random()-0.5)*3, hh+fl*sf, hw*0.22, hh-2);
-                        ctx.closePath(); ctx.fill();
-                    } else {
-                        fg.addColorStop(0, 'rgba(255,140,40,0.5)');
-                        fg.addColorStop(1, 'rgba(255,30,0,0)');
-                        ctx.fillStyle = fg;
-                        ctx.beginPath();
-                        ctx.moveTo(-hw * 0.28, hh - 2);
-                        ctx.quadraticCurveTo(0, hh + fl * sf, hw * 0.28, hh - 2);
-                        ctx.closePath(); ctx.fill();
-                    }
-                }
+                const fg0 = ctx.createLinearGradient(0, hh - 2, 0, hh + fl);
+                fg0.addColorStop(0, '#ffffff');
+                fg0.addColorStop(0.3, '#88ccff');
+                fg0.addColorStop(1, 'rgba(0,150,255,0)');
+                ctx.fillStyle = fg0;
+                ctx.beginPath();
+                ctx.moveTo(-hw * 0.12, hh - 2);
+                ctx.quadraticCurveTo(0, hh + fl, hw * 0.12, hh - 2);
+                ctx.closePath(); ctx.fill();
+                const fg1 = ctx.createLinearGradient(0, hh - 2, 0, hh + fl * 0.7);
+                fg1.addColorStop(0, 'rgba(255,220,90,0.9)');
+                fg1.addColorStop(0.5, 'rgba(255,100,20,0.5)');
+                fg1.addColorStop(1, 'rgba(255,50,0,0)');
+                ctx.fillStyle = fg1;
+                ctx.beginPath();
+                ctx.moveTo(-hw * 0.22, hh - 2);
+                ctx.quadraticCurveTo((Math.random()-0.5)*3, hh+fl*0.7, hw*0.22, hh-2);
+                ctx.closePath(); ctx.fill();
                 ctx.restore();
             } else {
                 /* 能量弹：梭形弹体 + 多层辉光 + 旋转能量环 */
@@ -1313,8 +1454,8 @@
                 ctx.save();
                 ctx.translate(b.x, b.y);
                 const g1 = ctx.createRadialGradient(0, 0, 0, 0, 0, b.width * 2.2);
-                g1.addColorStop(0, 'rgba(0,200,255,0.22)');
-                g1.addColorStop(0.5, 'rgba(0,150,255,0.06)');
+                g1.addColorStop(0, 'rgba(0,200,255,0.30)');
+                g1.addColorStop(0.5, 'rgba(0,150,255,0.08)');
                 g1.addColorStop(1, 'rgba(0,100,255,0)');
                 ctx.fillStyle = g1;
                 ctx.beginPath();
@@ -1322,16 +1463,16 @@
                 ctx.fill();
 
                 /* 第 2 层：旋转能量环 × 2 */
+                ctx.save();
                 for (let r = 0; r < 2; r++) {
-                    ctx.save();
                     ctx.rotate(state.time * (0.2 + r * 0.15) + r * Math.PI / 2);
                     ctx.strokeStyle = `rgba(0,220,255,${0.35 - r * 0.12})`;
                     ctx.lineWidth = 0.7 - r * 0.15;
                     ctx.beginPath();
                     ctx.ellipse(0, 0, b.width * 1.8, b.height * 0.25, 0, 0, Math.PI * 2);
                     ctx.stroke();
-                    ctx.restore();
                 }
+                ctx.restore();
 
                 /* 第 3 层：梭形弹体 */
                 ctx.shadowBlur = 18;
@@ -1354,7 +1495,7 @@
                 /* 第 4 层：尾部光束拖尾 */
                 ctx.shadowBlur = 0;
                 const tg = ctx.createLinearGradient(0, b.height * 0.3, 0, b.height * 1.6);
-                tg.addColorStop(0, 'rgba(0,180,255,0.5)');
+                tg.addColorStop(0, 'rgba(0,180,255,0.6)');
                 tg.addColorStop(1, 'rgba(0,100,255,0)');
                 ctx.fillStyle = tg;
                 ctx.beginPath();
@@ -1373,20 +1514,22 @@
     function drawParticles() {
         particles.forEach((p) => {
             const alpha = Math.max(0, p.life / p.maxLife);
-            ctx.save();
             ctx.globalAlpha = alpha;
-            ctx.shadowBlur = p.type === 'smoke' ? 0 : 12;
-            ctx.shadowColor = `rgb(${p.color})`;
-            const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.size);
-            grad.addColorStop(0, p.type === 'smoke' ? `rgba(${p.color},0.35)` : '#ffffff');
-            grad.addColorStop(0.32, `rgba(${p.color},${alpha})`);
-            grad.addColorStop(1, `rgba(${p.color},0)`);
-            ctx.fillStyle = grad;
+            if (p.type === 'trail') {
+                // 辉光拖尾粒子：高饱和、亮色、半透明
+                ctx.fillStyle = `rgba(${p.color},${alpha * 0.55 + 0.15})`;
+            } else if (p.type === 'smoke') {
+                // 烟尘粒子：淡色、低可见度
+                ctx.fillStyle = `rgba(${p.color},${alpha * 0.35})`;
+            } else {
+                // 火花/爆炸等：全可见度
+                ctx.fillStyle = `rgba(${p.color},${alpha})`;
+            }
             ctx.beginPath();
             ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
             ctx.fill();
-            ctx.restore();
         });
+        ctx.globalAlpha = 1;
     }
 
     function drawEffects() {

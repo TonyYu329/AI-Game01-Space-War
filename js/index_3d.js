@@ -12,16 +12,26 @@ let canvas3d;
 let planeGroup = null;  // 3D 战机已禁用（使用 2D plane128.png）
 let meteorMeshes = [];
 let meteorMeshMap = new WeakMap();
-/* 色板匹配 yunshi.png 参考图：暖色岩体 + 暗色阴影 + 高光 */
+/* 18 色调色板：覆盖极宽颜色范围，每颗陨石明显不同（glow为辉光色） */
 const meteorPalettes = [
-    { base: [0x9e8e7e, 0x8a7a6a, 0x5a4a3a], highlight: 0xc4b8a8 },  /* 灰褐岩 */
-    { base: [0xb09878, 0x9a8860, 0x6a5840], highlight: 0xd4c4a0 },  /* 暖沙岩 */
-    { base: [0x78909c, 0x607080, 0x405060], highlight: 0x98b0c0 },  /* 青灰岩 */
-    { base: [0x8a8a84, 0x6e6e68, 0x3e3e38], highlight: 0xa8a8a2 },  /* 石板灰 */
-    { base: [0xb08868, 0x987048, 0x684830], highlight: 0xccb098 },  /* 红褐岩 */
-    { base: [0x7a8a7a, 0x5a6e5a, 0x3a4a3a], highlight: 0x98b098 },  /* 灰绿岩 */
-    { base: [0x968878, 0x7a6e60, 0x4c4032], highlight: 0xb8a898 },  /* 暗沙岩 */
-    { base: [0x6e7a8e, 0x506078, 0x384458], highlight: 0x8898b0 }   /* 蓝灰岩 */
+    { base: [0x7a5a3a, 0x3a2216, 0x0c0808], highlight: 0x9a7a5a, glow: 0xff6622 },  // 暖棕岩
+    { base: [0x5a4a4a, 0x282018, 0x080808], highlight: 0x7a6a6a, glow: 0xff8844 },  // 暗灰岩
+    { base: [0x8a4830, 0x402018, 0x0e0808], highlight: 0xaa6848, glow: 0xff5518 },  // 铁锈红
+    { base: [0x9a7a40, 0x483818, 0x0a0804], highlight: 0xba9a60, glow: 0xffcc44 },  // 金黄岩
+    { base: [0x4a443a, 0x201a16, 0x060606], highlight: 0x6a645a, glow: 0xff7730 },  // 黑曜岩
+    { base: [0x786050, 0x382a1e, 0x0c0a08], highlight: 0x988068, glow: 0xff9940 },  // 暖灰岩
+    { base: [0x4a5a6a, 0x1a222e, 0x080a0e], highlight: 0x6a7a8a, glow: 0x44aaff },  // 蓝钢岩
+    { base: [0x5a5a3a, 0x28281a, 0x080806], highlight: 0x7a7a5a, glow: 0x88cc44 },  // 橄榄绿
+    { base: [0x6a4a6a, 0x2e1a2e, 0x0a080a], highlight: 0x8a6a8a, glow: 0xcc66ff },  // 紫灰岩
+    { base: [0x3a6a5a, 0x1a3028, 0x060e0a], highlight: 0x5a8a7a, glow: 0x44ffaa },  // 铜绿岩
+    { base: [0x8a7a5a, 0x4a3828, 0x0e0a06], highlight: 0xaa9a7a, glow: 0xffcc66 },  // 沙色岩
+    { base: [0x6a3a2a, 0x3a1a10, 0x0a0402], highlight: 0x8a5a4a, glow: 0xff8844 },  // 巧克力
+    { base: [0x6a6a6a, 0x2a2a2a, 0x0a0a0a], highlight: 0x8a8a8a, glow: 0x88bbff },  // 银灰岩
+    { base: [0x8a2a2a, 0x4a1010, 0x0e0000], highlight: 0xaa4a4a, glow: 0xff4444 },  // 绯红岩
+    { base: [0x8a5a20, 0x4a2a08, 0x0e0600], highlight: 0xaa7a40, glow: 0xff8800 },  // 焦橙岩
+    { base: [0x2a5a5a, 0x122a2a, 0x040808], highlight: 0x4a7a7a, glow: 0x44ffff },  // 暗青岩
+    { base: [0x3a3a3a, 0x1a1a1a, 0x040404], highlight: 0x5a5a5a, glow: 0xffaa55 },  // 炭黑岩
+    { base: [0x7a6a4a, 0x3a2e1a, 0x0a0806], highlight: 0x9a8a6a, glow: 0xffcc44 }   // 青铜岩
 ];
 
 /* 装饰模式（idle 状态） */
@@ -91,22 +101,23 @@ function onResize() {
 /* ---- 3D 陨石创建 ---- */
 function createMeteor3D(m) {
     const r = m.radius;
-    const segs = 20;
-    const rings = 16;
+    const segs = 28;
+    const rings = 22;
     const geo = new THREE.SphereGeometry(r, segs, rings);
 
     const pos = geo.attributes.position;
     const s1 = Math.random() * 100, s2 = Math.random() * 100, s3 = Math.random() * 100;
+    const s4 = Math.random() * 100;
 
     /* 生成随机环形山中心（球面坐标） */
-    const craterCount = 6 + Math.floor(Math.random() * 8);
+    const craterCount = 10 + Math.floor(Math.random() * 13);
     const craters = [];
     for (let c = 0; c < craterCount; c++) {
         craters.push({
             phi: Math.random() * Math.PI * 0.85 + 0.075,
             theta: Math.random() * Math.PI * 2,
-            radius: (0.06 + Math.random() * 0.2) * r,
-            depth: (0.1 + Math.random() * 0.18) * r
+            radius: (0.08 + Math.random() * 0.25) * r,
+            depth: (0.15 + Math.random() * 0.28) * r
         });
     }
 
@@ -115,19 +126,20 @@ function createMeteor3D(m) {
         const len = Math.sqrt(x * x + y * y + z * z);
         const nx = x / len, ny = y / len, nz = z / len;
 
-        /* FBM 4 层 octave 噪声 */
+        /* FBM 6 层 octave 噪声 */
         let fbm = 0, amp = 1, freq = 1, total = 0;
-        for (let o = 0; o < 4; o++) {
+        for (let o = 0; o < 6; o++) {
             fbm += (Math.sin(nx * 8 * freq + s1) * Math.cos(ny * 10 * freq + s2)
                   + Math.sin((nx + ny) * 6 * freq + s3) * 0.5
-                  + Math.cos((ny + nz) * 7 * freq + s1) * 0.3) * amp;
+                  + Math.cos((ny + nz) * 7 * freq + s1) * 0.3
+                  + Math.cos((nx - nz) * 5 * freq + s4) * 0.25) * amp;
             total += amp;
             amp *= 0.5;
-            freq *= 2.2;
+            freq *= 2.5;
         }
-        /* 锐化：增强峰谷对比 */
+        /* 柔和变形：减少凸起，增强凹陷感 */
         let noise = fbm / total;
-        noise = Math.sign(noise) * Math.pow(Math.abs(noise), 1.35) * 0.22;
+        noise = Math.sign(noise) * Math.pow(Math.abs(noise), 1.30) * 0.22;
 
         /* 环形山凹陷 */
         let craterDisp = 0;
@@ -140,10 +152,10 @@ function createMeteor3D(m) {
                 /* 坑内：向内凹陷 */
                 const t = angDist / crR;
                 craterDisp -= cr.depth * (1 - t * t) * 0.8;
-            } else if (angDist < crR * 1.3) {
-                /* 坑缘：微微隆起 */
-                const t = (angDist - crR) / (crR * 0.3);
-                craterDisp += cr.depth * 0.15 * (1 - t * t);
+            } else if (angDist < crR * 1.2) {
+                /* 坑缘：明显隆起 */
+                const t = (angDist - crR) / (crR * 0.2);
+                craterDisp += cr.depth * 0.18 * (1 - t * t);
             }
         });
 
@@ -158,33 +170,40 @@ function createMeteor3D(m) {
     const pIdx = Math.floor(Math.random() * meteorPalettes.length);
     const pal = meteorPalettes[pIdx];
 
-    /* 顶点颜色：模拟参考图的多色岩体（暖色基底 + 高光 + 暗色阴影） */
+    /* 顶点颜色：深黑金属岩石 + 内部熔岩暖光透出 */
     const sVar = Math.random() * 100;
     const colors = new Float32Array(pos.count * 3);
     for (let i = 0; i < pos.count; i++) {
         const x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i);
         const len = Math.sqrt(x*x + y*y + z*z);
         const nx = x/len, ny = y/len, nz = z/len;
-        /* 以噪声混合主色/中色/暗色 */
+        /* 以噪声混合主色/中色/暗色 — 暗色主导（55%） */
         const mix = (Math.sin(nx*7+sVar)*Math.cos(ny*9+sVar)*Math.sin(nz*5+sVar)) * 0.5 + 0.5;
-        const baseIdx = mix < 0.4 ? 2 : mix < 0.75 ? 1 : 0;
+        const baseIdx = mix < 0.55 ? 2 : mix < 0.85 ? 1 : 0;
         const c = new THREE.Color(pal.base[baseIdx]);
-        /* 朝向 "右上光源" 的方向添加高光色 */
+
+        /* 凹陷区域透出熔岩辉光（顶点距球心小于原始半径时） */
+        const indent = (r - len) / r;  // 正值=凹陷
+        if (indent > 0.05) {
+            c.lerp(new THREE.Color(pal.glow), Math.min(1, indent * 2.5));
+        }
+
+        /* 朝向光源的方向添加强烈高光（金属反光感） */
         const lightDir = new THREE.Vector3(0.6, 0.3, 0.8).normalize();
         const vNorm = new THREE.Vector3(nx, ny, nz);
         const dot = vNorm.dot(lightDir);
-        if (dot > 0.2) c.lerp(new THREE.Color(pal.highlight), (dot - 0.2) * 0.6);
-        if (dot < -0.2) c.lerp(new THREE.Color(0x050508), Math.min(1, (-dot - 0.2) * 0.4));
+        if (dot > 0.25) c.lerp(new THREE.Color(pal.highlight), (dot - 0.25) * 0.8);
+        if (dot < -0.15) c.lerp(new THREE.Color(0x030304), Math.min(1, (-dot - 0.15) * 0.5));
         colors[i*3] = c.r; colors[i*3+1] = c.g; colors[i*3+2] = c.b;
     }
     geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
 
     const mat = new THREE.MeshStandardMaterial({
         vertexColors: true,
-        roughness: 0.82 + Math.random() * 0.14,
-        metalness: 0.005 + Math.random() * 0.015,
-        emissive: new THREE.Color(0x111111),
-        emissiveIntensity: 0.15
+        roughness: 0.65 + Math.random() * 0.20,
+        metalness: 0.01 + Math.random() * 0.03,
+        emissive: new THREE.Color(0x221100),
+        emissiveIntensity: 0.25
     });
 
     const mesh = new THREE.Mesh(geo, mat);
@@ -193,6 +212,14 @@ function createMeteor3D(m) {
     mesh.userData.rotZ = (Math.random() - 0.5) * 0.025;
     mesh.userData.meteorRef = m;
     mesh.userData.crackLines = null;
+    /* 大型陨石内部点光源（模拟熔岩光照亮周围） */
+    if (m.isLarge) {
+        const ptLight = new THREE.PointLight(pal.glow, 0.3 + Math.random() * 0.3, r * 2.5);
+        ptLight.position.set(0, 0, 0);
+        mesh.add(ptLight);
+        mesh.userData.pointLight = ptLight;
+    }
+
     scene.add(mesh);
     return mesh;
 }
@@ -222,24 +249,29 @@ function generateCrackLines(radius) {
         const offY = (Math.random() - 0.5) * 1.8;
         const offZ = (Math.random() - 0.5) * 1.8;
 
-        /* 第 1 层：外层大范围发光（暗红，模拟岩石裂口热光） */
+        /* 第 1 层：外层大范围发光（熔岩暖光） */
         const g1Pts = pts.map((p) => new THREE.Vector3(p.x + offX*2.2, p.y + offY*2.2, p.z + offZ*2.2));
         lines.push(new THREE.Line(new THREE.BufferGeometry().setFromPoints(g1Pts),
-            new THREE.LineBasicMaterial({ color: 0x661111, depthTest: true })));
+            new THREE.LineBasicMaterial({ color: 0xff5518, depthTest: true })));
 
-        /* 第 2 层：内层发光（暗橙红） */
+        /* 第 2 层：内层发光（橙红熔岩光） */
         const g2Pts = pts.map((p) => new THREE.Vector3(p.x + offX*1.3, p.y + offY*1.3, p.z + offZ*1.3));
         lines.push(new THREE.Line(new THREE.BufferGeometry().setFromPoints(g2Pts),
-            new THREE.LineBasicMaterial({ color: 0x330a0a, depthTest: true })));
+            new THREE.LineBasicMaterial({ color: 0xff8833, depthTest: true })));
 
         /* 第 3 层：阴影偏移 */
         const shPts = pts.map((p) => new THREE.Vector3(p.x + offX, p.y + offY, p.z + offZ));
         lines.push(new THREE.Line(new THREE.BufferGeometry().setFromPoints(shPts),
-            new THREE.LineBasicMaterial({ color: 0x020000, depthTest: true })));
+            new THREE.LineBasicMaterial({ color: 0x050302, depthTest: true })));
 
-        /* 第 4 层：主裂纹（深黑） */
+        /* 第 4 层：主裂纹（深黑带暖底） */
         lines.push(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),
-            new THREE.LineBasicMaterial({ color: 0x080000, depthTest: true })));
+            new THREE.LineBasicMaterial({ color: 0x1a0804, depthTest: true })));
+
+        /* 第 5 层：极亮熔岩线 */
+        const g5Pts = pts.map((p) => new THREE.Vector3(p.x + offX*0.2, p.y + offY*0.2, p.z + offZ*0.2));
+        lines.push(new THREE.Line(new THREE.BufferGeometry().setFromPoints(g5Pts),
+            new THREE.LineBasicMaterial({ color: 0xffcc44, depthTest: true })));
 
         /* 50% 概率生成分支裂纹 */
         if (Math.random() > 0.5 && pts.length > 5) {
@@ -258,11 +290,11 @@ function generateCrackLines(radius) {
                 ));
             }
             lines.push(new THREE.Line(new THREE.BufferGeometry().setFromPoints(brPts),
-                new THREE.LineBasicMaterial({ color: 0x080000, depthTest: true })));
+                new THREE.LineBasicMaterial({ color: 0x1a0804, depthTest: true })));
             /* 分支阴影 */
             const brShPts = brPts.map((p) => new THREE.Vector3(p.x + offX*0.6, p.y + offY*0.6, p.z + offZ*0.6));
             lines.push(new THREE.Line(new THREE.BufferGeometry().setFromPoints(brShPts),
-                new THREE.LineBasicMaterial({ color: 0x030000, depthTest: true })));
+                new THREE.LineBasicMaterial({ color: 0x060302, depthTest: true })));
         }
     }
     return lines;
@@ -306,17 +338,12 @@ function syncMeteors(meteors) {
             mesh.userData.trailPlane.material.opacity = m.hit ? 0.9 : 0.6;
         }
 
-        /* 击中状态发光 */
+        /* 击中状态：仅显示裂痕，不改变发光 */
         if (m.hit && m.isLarge) {
-            mesh.material.emissive = new THREE.Color(0x331100);
-            mesh.material.emissiveIntensity = 0.4;
-            /* 裂纹线（仅生成一次） */
             if (!mesh.userData.crackLines) {
                 mesh.userData.crackLines = generateCrackLines(m.radius);
                 mesh.userData.crackLines.forEach((l) => mesh.add(l));
             }
-        } else {
-            mesh.material.emissiveIntensity *= 0.9;
         }
     });
 }
@@ -337,7 +364,7 @@ function buildDecorScene() {
         pos.setXYZ(i, x + nx * d, y + ny * d, z + nz * d);
     }
     geo.computeVertexNormals();
-    decorMeteor = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0xc48a4a, roughness: 0.78, metalness: 0.05 }));
+    decorMeteor = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: 0x1a120a, roughness: 0.55, metalness: 0.05, emissive: 0x441100, emissiveIntensity: 0.15 }));
     decorMeteor.position.set(180, 130, 0);
     group.add(decorMeteor);
 
