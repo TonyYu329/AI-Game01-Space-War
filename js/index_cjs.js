@@ -339,20 +339,33 @@
             e.preventDefault();
             if (e.button === 0) mouseBtns.left = true;
             if (e.button === 2) mouseBtns.right = true;
+            // 鼠标在画布上按下时，标记"拖动中"状态，阻塞移动端按钮事件
+            if (mobileControls) mobileControls.classList.add('dragging');
         });
         canvas.addEventListener('mouseup', (e) => {
             if (e.button === 0) mouseBtns.left = false;
             if (e.button === 2) mouseBtns.right = false;
+            // 全部按钮松开时恢复移动端按钮事件响应
+            if (!mouseBtns.left && !mouseBtns.right && mobileControls) {
+                mobileControls.classList.remove('dragging');
+            }
         });
 
-        /* 鼠标离开画布时，重置按钮状态，飞船停在边界 */
+        /* 鼠标离开画布时，飞船停在边界（不重置鼠标按键状态，不恢复按钮事件） */
         canvas.addEventListener('mouseleave', () => {
-            mouseBtns.left = false;
-            mouseBtns.right = false;
             if (state.current !== 'running') return;
             const clampX = Math.max(0, Math.min(gameWidth, state.lastMouseX));
             const clampY = Math.max(0, Math.min(CONFIG.DESIGN_HEIGHT, state.lastMouseY));
             movePlane(clampX, clampY);
+        });
+
+        /* 全局鼠标释放监听：无论鼠标在画布内还是画布外释放，都能正确重置状态 */
+        document.addEventListener('mouseup', (e) => {
+            if (e.button === 0) mouseBtns.left = false;
+            if (e.button === 2) mouseBtns.right = false;
+            if (!mouseBtns.left && !mouseBtns.right && mobileControls) {
+                mobileControls.classList.remove('dragging');
+            }
         });
 
         /* 鼠标重新进入画布时恢复实时跟随 */
@@ -420,10 +433,16 @@
             btnBullet.addEventListener('mousedown', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
+                // 按住鼠标左键或右键时划过按钮，不触发事件
+                if (mouseBtns.left || mouseBtns.right) return;
                 ensureAudio();
                 if (state.current === 'running') {
                     shoot('machinegun', { single: true });
                 }
+            });
+            /* 阻止鼠标移动事件冒泡到 canvas，防止拖动轨迹干扰 */
+            btnBullet.addEventListener('mousemove', (e) => {
+                e.stopPropagation();
             });
             btnBullet.addEventListener('contextmenu', (e) => e.preventDefault());
         }
@@ -442,10 +461,16 @@
             btnMissile.addEventListener('mousedown', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
+                // 按住鼠标左键或右键时划过按钮，不触发事件
+                if (mouseBtns.left || mouseBtns.right) return;
                 ensureAudio();
                 if (state.current === 'running') {
                     shoot('cannon');
                 }
+            });
+            /* 阻止鼠标移动事件冒泡到 canvas，防止拖动轨迹干扰 */
+            btnMissile.addEventListener('mousemove', (e) => {
+                e.stopPropagation();
             });
             btnMissile.addEventListener('contextmenu', (e) => e.preventDefault());
         }

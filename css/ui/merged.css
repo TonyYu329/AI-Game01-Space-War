@@ -487,6 +487,11 @@ canvas {
     pointer-events: none;
 }
 
+/* 拖动画布时阻塞按钮事件，防止同时射击和移动冲突 */
+.mobile-controls.dragging .mobile-btn {
+    pointer-events: none;
+}
+
 .mobile-btn {
     width: clamp(76px, 14vw, 92px);
     height: clamp(76px, 14vw, 92px);
