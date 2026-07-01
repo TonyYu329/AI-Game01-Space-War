@@ -31,3 +31,9 @@ souce/
 
 # 空文件 / 临时文件
 nul
+# DevSpace
+devspace/
+
+# Codex
+.codex/
+.agents/

@@ -272,3 +272,18 @@
 ### 修复
 - 修复文件末尾残留垃圾数据导致语法错误
 - 修复部分浏览器中 Edit 工具导致的文件截断问题
+
+## [4.3.1] — 2026-07-01
+
+### 新增
+- DevSpace MCP 服务器配置（Cloudflare Tunnel + OAuth）
+- Cloudflare Tunnel 固定隧道 devspace-tunnel（域名 devspace.ikasoft.cn）
+- 支持通过 ChatGPT 远程连接本地开发环境
+
+### 修改
+- 项目依赖目录更新（node_modules、devspace）
+- 配置文件优化（UTF-8 无 BOM 编码）
+
+### 技术配置
+- DevSpace 允许访问目录扩展至 D:\Study\AICode
+- 环境：Node.js 25.2.1、Cloudflare Tunnel 2026.6.1

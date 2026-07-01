@@ -1,0 +1,18 @@
+ChatGPT 已成功连接到你本地的 DevSpace！
+整个架构搭建完成：
+ChatGPT → devspace.ikasoft.cn/mcp → Cloudflare Tunnel → 你的电脑 (DevSpace :7676) → AICodeSpaceWar 项目
+后续使用注意事项
+1. 如果 ChatGPT 断开连接
+大多数情况是隧道断了，运行以下命令重启：
+cloudflared tunnel run devspace-tunnel
+2. 如果电脑重启了
+需要重新启动两个服务：
+# 先启动 DevSpace（在 Git Bash 中）
+DEVSPACE_OAUTH_OWNER_TOKEN=67lFBmnYWeAxKTtwELfurbXVsgU2iOzZ npx @waishnav/devspace serve
+
+# 再启动隧道
+cloudflared tunnel run devspace-tunnel
+3. Owner 密码备份
+67lFBmnYWeAxKTtwELfurbXVsgU2iOzZ
+4. 当前授权有效期
+OAuth 令牌默认有效期 1 小时，但 DevSpace 支持 refresh_token 自动刷新（有效期 30 天），所以一次授权后可以持续使用。
